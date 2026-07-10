@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHARGE シフト希望提出</title>
+<script>
+window.onerror = function(msg, src, line, col){
+  var box = document.createElement('div');
+  box.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#D45B6A;color:#fff;' +
+    'padding:14px 16px;font-family:sans-serif;font-size:13px;z-index:9999;white-space:pre-wrap';
+  box.textContent = 'クライアントエラー: ' + msg + ' (行:' + line + ')';
+  document.body.prepend(box);
+  return false;
+};
+</script>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+:root{
+  --bg:#F5F7FA; --surface:#FFFFFF; --ink:#1C2433; --muted:#6B7686;
+  --line:#E4E9F0; --accent:#FFC400; --accent-ink:#3A2E00; --lgreen:#06C755; --risk:#D45B6A;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:16px;background:var(--bg);color:var(--ink);
+  font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;font-size:14px;line-height:1.6}
+.phone{max-width:430px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+h1{font-size:16px;margin:0 0 4px}
+.sub{font-size:12px;color:var(--muted);margin:0 0 14px}
+.test-banner{background:color-mix(in srgb, var(--accent) 20%, var(--surface));border:1px solid var(--accent);
+  border-radius:8px;padding:6px 10px;font-size:11px;margin-bottom:12px;display:none}
+.linklist button{
+  display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--bg);
+  color:var(--ink);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer
+}
+.rows{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.row{display:flex;gap:6px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.row input[type=date]{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface);font-family:inherit;font-size:13px}
+.row select{border:1px solid var(--line);border-radius:8px;padding:6px 4px;background:var(--surface);font-family:inherit;font-size:13px}
+.row .del{border:0;background:transparent;color:var(--muted);font-size:15px}
+.add-row{width:100%;border:1.5px dashed var(--line);background:transparent;color:var(--muted);border-radius:12px;padding:9px 0;font-size:13px;font-weight:600;margin-bottom:16px;font-family:inherit;cursor:pointer}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:6px}
+.cal .wd{font-size:10px;text-align:center;color:var(--muted);font-weight:600}
+.day{aspect-ratio:1;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer}
+.day.blank{visibility:hidden}
+.day.on{background:var(--risk);border-color:var(--risk);color:#fff}
+textarea{width:100%;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-family:inherit;font-size:13px;padding:8px 10px;resize:vertical;min-height:52px;margin-bottom:16px}
+.submit{width:100%;border:0;border-radius:12px;padding:13px 0;background:var(--lgreen);color:#fff;font-size:14.5px;font-weight:700;font-family:inherit;cursor:pointer}
+.success .big{font-size:40px;color:var(--lgreen);text-align:center}
+.msg{font-size:13px;color:var(--muted);text-align:center;margin:20px 0}
+</style>
+</head>
+<body>
+<div class="phone" id="app">
+  <div class="test-banner" id="testBanner">テストモードです</div>
+  <div id="content"><p class="msg">読み込み中…</p></div>
+  <div style="text-align:center;font-size:10px;color:#9AA3AF;margin-top:10px">web v1</div>
+</div>
+<script>
+const LIFF_ID = '2010649060-f8YllUzm';
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxeXoT_E22dAyb_rz7hH0Q0_JeJqqhNJyV-VfGtvDpVjVZlEtUH4wxKUY8i64H66VFT/exec';
+
+let myProfile = null;
+let staffInfo = null;
+let ctx = null;
+let rows = [];
+let offDays = new Set();
+
+function api(payload){
+  return fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify(payload) })
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if(!j.ok) throw new Error(j.error || 'サーバーエラー');
+      return j.data;
+    });
+}
+
+function setStatus(text){
+  document.getElementById('content').innerHTML = '<p class="msg">' + text + '</p>';
+}
+function showError(label, err){
+  const msg = (err && err.message) ? err.message : String(err);
+  document.getElementById('content').innerHTML =
+    '<p class="msg" style="color:var(--risk)">エラー（' + label + '）<br>' + msg + '</p>';
+}
+
+function boot(){
+  setStatus('LIFFを初期化中…');
+  if(typeof liff === 'undefined'){
+    enterTestMode('LIFF SDKを読み込めませんでした');
+    return;
+  }
+  let done = false;
+  const fallback = function(reason){
+    if(done) return;
+    done = true;
+    enterTestMode(reason);
+  };
+  setTimeout(function(){ fallback('LIFF初期化が10秒以内に完了しませんでした'); }, 10000);
+  liff.init({ liffId: LIFF_ID }).then(function(){
+    if(done) return;
+    done = true;
+    setStatus('ログイン確認中…');
+    if(!liff.isLoggedIn()){ liff.login(); return; }
+    liff.getProfile().then(function(p){
+      myProfile = { userId: p.userId, displayName: p.displayName };
+      setStatus('スタッフ情報を確認中…');
+      checkLink();
+    }).catch(function(err){ showError('プロフィール取得', err); });
+  }).catch(function(err){
+    fallback('LIFF初期化エラー: ' + ((err && err.message) ? err.message : String(err)));
+  });
+}
+
+function enterTestMode(reason){
+  myProfile = { userId: 'TEST_USER', displayName: 'テストユーザー' };
+  const banner = document.getElementById('testBanner');
+  banner.style.display = 'block';
+  banner.textContent = 'テストモードです（' + reason + '）';
+  setStatus('スタッフ情報を確認中…（テストモード）');
+  checkLink();
+}
+
+function checkLink(){
+  api({ action: 'findStaff', userId: myProfile.userId })
+    .then(function(staff){
+      if(staff){ staffInfo = staff; loadForm(); }
+      else { showLinkScreen(); }
+    })
+    .catch(function(err){ showError('スタッフ確認', err); });
+}
+
+function showLinkScreen(){
+  setStatus('スタッフ一覧を読み込み中…');
+  api({ action: 'unlinked' })
+    .then(function(list){
+      const c = document.getElementById('content');
+      if(!list.length){
+        c.innerHTML = '<p class="msg">登録されているスタッフが見つかりませんでした。オーナーに確認してください。</p>';
+        return;
+      }
+      let html = '<h1>はじめまして！</h1><p class="sub">下の一覧からご自身のお名前をタップしてください（初回だけです）</p><div class="linklist">';
+      list.forEach(function(s){
+        html += '<button onclick="doLink(' + s.row + ')">' + s.name + '（' + s.storeName + '）</button>';
+      });
+      html += '</div>';
+      c.innerHTML = html;
+    })
+    .catch(function(err){ showError('スタッフ一覧取得', err); });
+}
+
+function doLink(row){
+  setStatus('設定中…');
+  api({ action: 'link', row: row, userId: myProfile.userId })
+    .then(function(staff){
+      staffInfo = staff;
+      loadForm();
+    })
+    .catch(function(err){ showError('紐付け', err); });
+}
+
+function loadForm(){
+  setStatus('読み込み中…');
+  api({ action: 'context', storeId: staffInfo.storeId })
+    .then(function(c){
+      ctx = c;
+      renderForm();
+    })
+    .catch(function(err){ showError('フォーム情報取得', err); });
+}
+
+function timeOpts(open, close, sel){
+  let s = '';
+  for(let t = open; t <= close; t += 0.5){
+    const label = Math.floor(t) + ':' + (t % 1 ? '30' : '00');
+    s += '<option value="' + t + '"' + (t === sel ? ' selected' : '') + '>' + label + '</option>';
+  }
+  return s;
+}
+
+function renderForm(){
+  const c = document.getElementById('content');
+  const monthLabel = ctx.year + '年' + ctx.month + '月';
+
+  if(staffInfo.fixed === 'TRUE'){
+    c.innerHTML = '<h1>' + staffInfo.name + 'さん</h1>' +
+      '<p class="sub">固定勤務のため、' + monthLabel + '分の提出は不要です🎉<br>変更したい日がある場合はオーナーに直接ご連絡ください。</p>';
+    return;
+  }
+
+  if(staffInfo.mode === '休み希望のみ'){
+    rows = [];
+    let cal = ['日','月','火','水','木','金','土'].map(function(w){ return '<div class="wd">' + w + '</div>'; }).join('');
+    for(let i = 0; i < ctx.firstDow; i++) cal += '<button class="day blank"></button>';
+    for(let d = 1; d <= ctx.daysInMonth; d++) cal += '<button class="day" data-d="' + d + '" onclick="toggleDay(' + d + ')">' + d + '</button>';
+    c.innerHTML = '<h1>' + staffInfo.name + 'さん</h1>' +
+      '<p class="sub">' + monthLabel + '、休みたい日をタップしてください</p>' +
+      '<div class="cal">' + cal + '</div>' +
+      '<textarea id="noteInput" placeholder="補足があれば"></textarea>' +
+      '<button class="submit" onclick="submitA()">この内容で提出する</button>';
+    return;
+  }
+
+  rows = [{ date: ctx.year + '-' + String(ctx.month).padStart(2,'0') + '-01', start: ctx.store.open, end: ctx.store.close }];
+  renderRowsAndButtons(monthLabel);
+}
+
+function toggleDay(d){
+  if(offDays.has(d)){ offDays.delete(d); } else { offDays.add(d); }
+  document.querySelector('.day[data-d="' + d + '"]').classList.toggle('on');
+}
+
+function renderRowsAndButtons(monthLabel){
+  const c = document.getElementById('content');
+  c.innerHTML = '<h1>' + staffInfo.name + 'さん</h1>' +
+    '<p class="sub">' + monthLabel + '、出勤できる日時を入力してください</p>' +
+    '<div class="rows" id="rowsEl"></div>' +
+    '<button class="add-row" onclick="addRow()">＋ 希望日を追加</button>' +
+    '<button class="submit" onclick="submitB()">この内容で提出する</button>';
+  renderRows();
+}
+
+function renderRows(){
+  const el = document.getElementById('rowsEl');
+  const minD = ctx.year + '-' + String(ctx.month).padStart(2,'0') + '-01';
+  const maxD = ctx.year + '-' + String(ctx.month).padStart(2,'0') + '-' + String(ctx.daysInMonth).padStart(2,'0');
+  el.innerHTML = rows.map(function(r, i){
+    return '<div class="row">' +
+      '<input type="date" value="' + r.date + '" min="' + minD + '" max="' + maxD + '" onchange="updateRow(' + i + ',\'date\',this.value)">' +
+      '<select onchange="updateRow(' + i + ',\'start\',this.value)">' + timeOpts(ctx.store.open, ctx.store.close - 0.5, r.start) + '</select>' +
+      '<span>〜</span>' +
+      '<select onchange="updateRow(' + i + ',\'end\',this.value)">' + timeOpts(ctx.store.open + 0.5, ctx.store.close, r.end) + '</select>' +
+      (rows.length > 1 ? '<button class="del" onclick="delRow(' + i + ')">✕</button>' : '') +
+      '</div>';
+  }).join('');
+}
+
+function updateRow(i, field, val){
+  rows[i][field] = (field === 'date') ? val : parseFloat(val);
+  if(rows[i].end <= rows[i].start) rows[i].end = Math.min(rows[i].start + 1, ctx.store.close);
+  renderRows();
+}
+function addRow(){
+  const last = rows[rows.length - 1];
+  rows.push({ date: last.date, start: ctx.store.open, end: ctx.store.close });
+  renderRows();
+}
+function delRow(i){ rows.splice(i, 1); renderRows(); }
+
+function submitB(){
+  setStatus('送信中…');
+  api({ action: 'submitRequests', staffId: staffInfo.id, storeId: staffInfo.storeId, rows: rows })
+    .then(function(){
+      showSuccess(rows.length + '件の希望を提出しました。');
+    })
+    .catch(function(err){ showError('提出', err); });
+}
+
+function submitA(){
+  const list = Array.from(offDays).sort(function(a,b){ return a-b; });
+  const note = document.getElementById('noteInput').value;
+  const monthStr = ctx.year + '-' + String(ctx.month).padStart(2,'0') + '-';
+  const dates = list.map(function(d){ return monthStr + String(d).padStart(2,'0'); });
+  setStatus('送信中…');
+  api({ action: 'submitDaysOff', staffId: staffInfo.id, storeId: staffInfo.storeId, dates: dates, note: note })
+    .then(function(){
+      showSuccess(list.length ? list.length + '日分の休み希望を提出しました。' : '休み希望なしで提出しました。');
+    })
+    .catch(function(err){ showError('提出', err); });
+}
+
+function showSuccess(text){
+  document.getElementById('content').innerHTML =
+    '<div class="success"><div class="big">✓</div><h1 style="text-align:center">提出を受け付けました！</h1>' +
+    '<p class="msg">' + text + '</p></div>';
+}
+
+boot();
+</script>
+</body>
+</html>
