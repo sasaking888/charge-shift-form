@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CHARGE シフトボード</title>
+<script>
+window.onerror = function(msg, src, line, col){
+  var box = document.createElement('div');
+  box.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#D45B6A;color:#fff;' +
+    'padding:14px 16px;font-family:sans-serif;font-size:13px;z-index:9999;white-space:pre-wrap';
+  box.textContent = 'クライアントエラー: ' + msg + ' (行:' + line + ')';
+  document.body.prepend(box);
+  return false;
+};
+</script>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+:root{
+  --bg:#F5F7FA; --surface:#FFFFFF; --ink:#1C2433; --muted:#6B7686;
+  --line:#E4E9F0; --accent:#FFC400; --accent-ink:#3A2E00; --lgreen:#06C755; --risk:#D45B6A; --blue:#3B7DD8;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:12px;background:var(--bg);color:var(--ink);
+  font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;font-size:14px;line-height:1.6}
+.wrap{max-width:640px;margin:0 auto}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
+h1{font-size:16px;margin:0}
+h2{font-size:13.5px;margin:0 0 8px;color:var(--muted)}
+.msg{font-size:13px;color:var(--muted);text-align:center;margin:20px 0}
+.err{color:var(--risk)}
+.banner{background:color-mix(in srgb, var(--accent) 20%, var(--surface));border:1px solid var(--accent);
+  border-radius:8px;padding:6px 10px;font-size:11.5px;margin-bottom:10px;display:none}
+.head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.mnav{display:flex;align-items:center;gap:8px}
+.mnav button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:4px 10px;font-size:14px;cursor:pointer}
+.mnav .mon{font-weight:700;font-size:15px}
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:5px 14px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.tabs button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.sum{display:flex;gap:14px;font-size:12.5px;color:var(--muted)}
+.sum b{color:var(--ink);font-size:15px}
+.inbox-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.inbox-item:last-child{border-bottom:0}
+.inbox-item .who{font-weight:700;min-width:5.5em}
+.inbox-item .when{flex:1;color:var(--muted)}
+.inbox-item button{border:0;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-reflect{background:var(--lgreen);color:#fff}
+.btn-ok{background:var(--line);color:var(--ink)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .wd{font-size:10px;text-align:center;color:var(--muted);font-weight:600}
+.cal .d{min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface);
+  font-size:11px;padding:3px 4px;cursor:pointer;text-align:left;font-family:inherit;color:var(--ink)}
+.cal .d.blank{visibility:hidden}
+.cal .d.sel{border-color:var(--blue);border-width:2px}
+.cal .d .num{font-weight:700}
+.cal .d .cnt{display:inline-block;background:var(--blue);color:#fff;border-radius:999px;font-size:9.5px;padding:0 5px;margin-top:2px}
+.cal .d .zero{color:var(--risk);font-size:9.5px;font-weight:700}
+.shift-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.shift-item:last-child{border-bottom:0}
+.shift-item .who{font-weight:700;min-width:5.5em}
+.shift-item .time{flex:1}
+.shift-item .orig{color:var(--muted);text-decoration:line-through;font-size:11px;margin-right:4px}
+.shift-item button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit}
+.shift-item .del{color:var(--risk)}
+.addform{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.addform select{border:1px solid var(--line);border-radius:8px;padding:7px 6px;background:var(--surface);font-family:inherit;font-size:13px}
+.addform .go{border:0;background:var(--lgreen);color:#fff;border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
+.foot{text-align:center;font-size:10px;color:#9AA3AF;margin-top:8px}
+code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:11px;word-break:break-all;user-select:all;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner" id="banner"></div>
+  <div class="card">
+    <div class="head">
+      <h1>シフトボード</h1>
+      <div class="mnav">
+        <button onclick="moveMonth(-1)">◀</button>
+        <span class="mon" id="monLabel"></span>
+        <button onclick="moveMonth(1)">▶</button>
+      </div>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="sum" id="summary"></div>
+  </div>
+  <div id="content"><p class="msg">読み込み中…</p></div>
+  <div class="foot">board v1</div>
+</div>
+<script>
+const LIFF_ID = '2010649060-38kc0rNy';
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxeXoT_E22dAyb_rz7hH0Q0_JeJqqhNJyV-VfGtvDpVjVZlEtUH4wxKUY8i64H66VFT/exec';
+
+let userId = null;
+let D = null;            // boardData
+let cur = { y: 0, m: 0 };
+let storeId = null;
+let selDate = null;
+
+function api(payload){
+  return fetch(GAS_API_URL, { method:'POST', body: JSON.stringify(payload) })
+    .then(r => r.json())
+    .then(j => { if(!j.ok) throw new Error(j.error || 'サーバーエラー'); return j.data; });
+}
+function setMsg(t, isErr){
+  document.getElementById('content').innerHTML = '<div class="card"><p class="msg' + (isErr ? ' err' : '') + '">' + t + '</p></div>';
+}
+function hLabel(h){ return Math.floor(h) + ':' + (h % 1 ? '30' : '00'); }
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function boot(){
+  setMsg('LIFFを初期化中…');
+  const now = new Date();
+  cur.y = now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear();
+  cur.m = now.getMonth() === 11 ? 1 : now.getMonth() + 2;
+  if(typeof liff === 'undefined'){ setMsg('LIFF SDKを読み込めませんでした。通信環境を確認してください。', true); return; }
+  let done = false;
+  setTimeout(function(){ if(!done){ done = true; setMsg('LIFF初期化がタイムアウトしました。LINEアプリ内から開いてください。', true); } }, 10000);
+  liff.init({ liffId: LIFF_ID }).then(function(){
+    if(done) return; done = true;
+    if(!liff.isLoggedIn()){ liff.login(); return; }
+    liff.getProfile().then(function(p){
+      userId = p.userId;
+      load();
+    }).catch(function(e){ setMsg('プロフィール取得エラー: ' + e.message, true); });
+  }).catch(function(e){ if(!done){ done = true; setMsg('LIFF初期化エラー: ' + e.message, true); } });
+}
+
+function load(){
+  setMsg('データを読み込み中…');
+  api({ action:'boardData', userId: userId, year: cur.y, month: cur.m })
+    .then(function(d){
+      if(d.noPermission){
+        document.getElementById('content').innerHTML =
+          '<div class="card"><h2>アクセス権が未登録です</h2>' +
+          '<p style="font-size:12.5px">スプレッドシートの「⑥権限マスタ」シートに、下のIDを貼り付けて登録してください（列: LINEユーザーID / 氏名 / 店舗ID / 権限レベル=編集可）。店舗ごとに1行ずつ。</p>' +
+          '<code class="uid">' + esc(d.userId) + '</code>' +
+          '<p style="font-size:12.5px;color:var(--muted)">登録したらこのページを開き直してください。</p></div>';
+        return;
+      }
+      D = d;
+      if(!storeId || !D.stores.some(s => s.id === storeId)) storeId = D.stores.length ? D.stores[0].id : null;
+      if(!selDate) selDate = null;
+      render();
+    })
+    .catch(function(e){ setMsg('読み込みエラー: ' + e.message, true); });
+}
+
+function moveMonth(dir){
+  cur.m += dir;
+  if(cur.m < 1){ cur.m = 12; cur.y--; }
+  if(cur.m > 12){ cur.m = 1; cur.y++; }
+  selDate = null;
+  load();
+}
+
+function store(){ return D.stores.find(s => s.id === storeId); }
+function staffOf(id){ return D.staff.find(s => s.id === id) || { name: id, wage: 0 }; }
+function shiftsOn(dateStr){ return D.shifts.filter(s => s.storeId === storeId && s.date === dateStr); }
+function dstr(d){ return cur.y + '-' + String(cur.m).padStart(2,'0') + '-' + String(d).padStart(2,'0'); }
+
+function render(){
+  document.getElementById('monLabel').textContent = cur.y + '年' + cur.m + '月';
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = D.stores.map(s =>
+    '<button class="' + (s.id === storeId ? 'on' : '') + '" onclick="switchStore(\'' + esc(s.id) + '\')">' + esc(s.name) + (s.editable ? '' : '（閲覧）') + '</button>'
+  ).join('');
+  const st = store();
+  const banner = document.getElementById('banner');
+  if(st && !st.editable){ banner.style.display = 'block'; banner.textContent = 'この店舗は閲覧のみです（編集操作はできません）'; }
+  else banner.style.display = 'none';
+
+  const monthShifts = D.shifts.filter(s => s.storeId === storeId);
+  let hours = 0, cost = 0;
+  monthShifts.forEach(s => { const h = s.end - s.start; hours += h; cost += h * staffOf(s.staffId).wage; });
+  document.getElementById('summary').innerHTML =
+    '<span>今月の確定 <b>' + monthShifts.length + '</b>件</span>' +
+    '<span>合計 <b>' + Math.round(hours * 10) / 10 + '</b>時間</span>' +
+    '<span>概算人件費 <b>¥' + Math.round(cost).toLocaleString() + '</b></span>';
+
+  let html = renderInbox() + renderCal();
+  if(selDate) html += renderDay();
+  document.getElementById('content').innerHTML = html;
+}
+function switchStore(id){ storeId = id; selDate = null; render(); }
+
+function renderInbox(){
+  const st = store();
+  const list = D.requests.filter(r => r.storeId === storeId && r.status !== '反映済み');
+  let html = '<div class="card"><h2>LINE希望 受信箱（未反映 ' + list.length + '件）</h2>';
+  if(!list.length){ html += '<p class="msg" style="margin:6px 0">未反映の希望はありません</p>'; }
+  list.forEach(function(r){
+    const who = esc(staffOf(r.staffId).name);
+    const dParts = r.date.split('-');
+    const dLabel = Number(dParts[1]) + '/' + Number(dParts[2]);
+    if(r.start === '' || r.start === null){
+      html += '<div class="inbox-item"><span class="who">' + who + '</span><span class="when">' + dLabel + ' 休み希望</span>' +
+        (st.editable ? '<button class="btn-ok" onclick="ackRequest(\'' + esc(r.id) + '\')">確認済みにする</button>' : '') + '</div>';
+    } else {
+      html += '<div class="inbox-item"><span class="who">' + who + '</span><span class="when">' + dLabel + ' ' + hLabel(r.start) + '〜' + hLabel(r.end) + '</span>' +
+        (st.editable ? '<button class="btn-reflect" onclick="reflect(\'' + esc(r.id) + '\')">シフトに反映</button>' : '') + '</div>';
+    }
+  });
+  return html + '</div>';
+}
+
+function renderCal(){
+  const days = new Date(cur.y, cur.m, 0).getDate();
+  const first = new Date(cur.y, cur.m - 1, 1).getDay();
+  let html = '<div class="card"><h2>' + cur.m + '月カレンダー（日付をタップで編集）</h2><div class="cal">';
+  html += ['日','月','火','水','木','金','土'].map(w => '<div class="wd">' + w + '</div>').join('');
+  for(let i = 0; i < first; i++) html += '<button class="d blank"></button>';
+  for(let d = 1; d <= days; d++){
+    const ds = dstr(d);
+    const n = shiftsOn(ds).length;
+    html += '<button class="d' + (selDate === ds ? ' sel' : '') + '" onclick="pickDay(\'' + ds + '\')">' +
+      '<span class="num">' + d + '</span><br>' +
+      (n ? '<span class="cnt">' + n + '人</span>' : '<span class="zero">0人</span>') + '</button>';
+  }
+  return html + '</div></div>';
+}
+function pickDay(ds){ selDate = ds; render(); }
+
+function renderDay(){
+  const st = store();
+  const list = shiftsOn(selDate).slice().sort((a,b) => a.start - b.start);
+  const dParts = selDate.split('-');
+  let html = '<div class="card"><h2>' + Number(dParts[1]) + '月' + Number(dParts[2]) + '日のシフト（' + esc(st.name) + '）</h2>';
+  if(!list.length) html += '<p class="msg" style="margin:6px 0">まだシフトがありません</p>';
+  list.forEach(function(s){
+    html += '<div class="shift-item"><span class="who">' + esc(staffOf(s.staffId).name) + '</span>' +
+      '<span class="time">' +
+      (s.origStart !== '' && s.origStart !== null && s.origStart !== undefined && String(s.origStart) !== '' ? '<span class="orig">' + hLabel(s.origStart) + '〜' + hLabel(s.origEnd) + '</span>' : '') +
+      hLabel(s.start) + '〜' + hLabel(s.end) + '</span>' +
+      (st.editable ? '<button onclick="editShift(\'' + esc(s.id) + '\')">時間変更</button><button class="del" onclick="removeShift(\'' + esc(s.id) + '\')">削除</button>' : '') +
+      '</div>';
+  });
+  if(st.editable){
+    html += '<div class="addform">' +
+      '<select id="addStaff">' + D.staff.filter(s => s.storeId === storeId).map(s => '<option value="' + esc(s.id) + '">' + esc(s.name) + '</option>').join('') + '</select>' +
+      '<select id="addStart">' + timeOpts(st.open, st.close - 0.5, st.open) + '</select><span>〜</span>' +
+      '<select id="addEnd">' + timeOpts(st.open + 0.5, st.close, st.close) + '</select>' +
+      '<button class="go" onclick="manualAdd()">追加</button></div>';
+  }
+  return html + '</div>';
+}
+function timeOpts(open, close, sel){
+  let s = '';
+  for(let t = open; t <= close; t += 0.5) s += '<option value="' + t + '"' + (t === sel ? ' selected' : '') + '>' + hLabel(t) + '</option>';
+  return s;
+}
+
+function reflect(reqId){
+  const r = D.requests.find(x => x.id === reqId);
+  if(!r) return;
+  setMsg('反映中…');
+  api({ action:'addShift', userId: userId, shift: { staffId: r.staffId, storeId: r.storeId, date: r.date, start: r.start, end: r.end, fromRequestId: r.id } })
+    .then(load).catch(function(e){ alert('エラー: ' + e.message); load(); });
+}
+function ackRequest(reqId){
+  setMsg('更新中…');
+  api({ action:'markRequest', userId: userId, requestId: reqId, status: '反映済み' })
+    .then(load).catch(function(e){ alert('エラー: ' + e.message); load(); });
+}
+function manualAdd(){
+  const staffSel = document.getElementById('addStaff').value;
+  const s = parseFloat(document.getElementById('addStart').value);
+  const en = parseFloat(document.getElementById('addEnd').value);
+  if(en <= s){ alert('終了時刻は開始より後にしてください'); return; }
+  setMsg('追加中…');
+  api({ action:'addShift', userId: userId, shift: { staffId: staffSel, storeId: storeId, date: selDate, start: s, end: en } })
+    .then(load).catch(function(e){ alert('エラー: ' + e.message); load(); });
+}
+function editShift(id){
+  const s = D.shifts.find(x => x.id === id);
+  const st = store();
+  const ns = prompt('開始時刻（例 11 または 11.5 = 11:30）', s.start);
+  if(ns === null) return;
+  const ne = prompt('終了時刻（例 20 または 17.5 = 17:30）', s.end);
+  if(ne === null) return;
+  const a = parseFloat(ns), b = parseFloat(ne);
+  if(isNaN(a) || isNaN(b) || b <= a || a < st.open || b > st.close){ alert('時刻が正しくありません（営業時間 ' + hLabel(st.open) + '〜' + hLabel(st.close) + '）'); return; }
+  setMsg('更新中…');
+  api({ action:'updateShift', userId: userId, shiftId: id, start: a, end: b })
+    .then(load).catch(function(e){ alert('エラー: ' + e.message); load(); });
+}
+function removeShift(id){
+  if(!confirm('このシフトを削除しますか？（希望から反映したものは受信箱に戻ります）')) return;
+  setMsg('削除中…');
+  api({ action:'deleteShift', userId: userId, shiftId: id })
+    .then(load).catch(function(e){ alert('エラー: ' + e.message); load(); });
+}
+
+boot();
+</script>
+</body>
+</html>
