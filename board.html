@@ -22,11 +22,13 @@ window.onerror = function(msg, src, line, col){
 :root{
   --bg:#F5F7FA; --surface:#FFFFFF; --ink:#1C2433; --muted:#6B7686;
   --line:#E4E9F0; --accent:#FFC400; --accent-ink:#3A2E00; --lgreen:#06C755; --risk:#D45B6A; --blue:#3B7DD8;
+  --slot:28px; --namew:56px;
 }
 *{box-sizing:border-box}
 body{margin:0;padding:12px;background:var(--bg);color:var(--ink);
-  font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;font-size:14px;line-height:1.6}
-.wrap{max-width:640px;margin:0 auto}
+  font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;font-size:14px;line-height:1.6;
+  touch-action:manipulation}
+.wrap{max-width:720px;margin:0 auto}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
 h1{font-size:16px;margin:0}
 h2{font-size:13.5px;margin:0 0 8px;color:var(--muted)}
@@ -34,14 +36,17 @@ h2{font-size:13.5px;margin:0 0 8px;color:var(--muted)}
 .err{color:var(--risk)}
 .banner{background:color-mix(in srgb, var(--accent) 20%, var(--surface));border:1px solid var(--accent);
   border-radius:8px;padding:6px 10px;font-size:11.5px;margin-bottom:10px;display:none}
-.head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap}
 .mnav{display:flex;align-items:center;gap:8px}
-.mnav button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:4px 10px;font-size:14px;cursor:pointer}
+.mnav button,.toolbtn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:4px 10px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink)}
 .mnav .mon{font-weight:700;font-size:15px}
+.tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.toolbtn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.toolbtn:disabled{opacity:.45;cursor:not-allowed}
 .tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
 .tabs button{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:5px 14px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
 .tabs button.on{background:var(--ink);border-color:var(--ink);color:#fff}
-.sum{display:flex;gap:14px;font-size:12.5px;color:var(--muted)}
+.sum{display:flex;gap:14px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
 .sum b{color:var(--ink);font-size:15px}
 .inbox-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
 .inbox-item:last-child{border-bottom:0}
@@ -59,18 +64,37 @@ h2{font-size:13.5px;margin:0 0 8px;color:var(--muted)}
 .cal .d .num{font-weight:700}
 .cal .d .cnt{display:inline-block;background:var(--blue);color:#fff;border-radius:999px;font-size:9.5px;padding:0 5px;margin-top:2px}
 .cal .d .zero{color:var(--risk);font-size:9.5px;font-weight:700}
-.shift-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
-.shift-item:last-child{border-bottom:0}
-.shift-item .who{font-weight:700;min-width:5.5em}
-.shift-item .time{flex:1}
-.shift-item .orig{color:var(--muted);text-decoration:line-through;font-size:11px;margin-right:4px}
-.shift-item button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;font-family:inherit}
-.shift-item .del{color:var(--risk)}
-.addform{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.addform{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:12px}
 .addform select{border:1px solid var(--line);border-radius:8px;padding:7px 6px;background:var(--surface);font-family:inherit;font-size:13px}
 .addform .go{border:0;background:var(--lgreen);color:#fff;border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
 .foot{text-align:center;font-size:10px;color:#9AA3AF;margin-top:8px}
 code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:11px;word-break:break-all;user-select:all;margin-top:8px}
+.hint{font-size:11px;color:var(--muted);margin:0 0 8px}
+/* 日表示ガント */
+.gwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px}
+.gantt{min-width:max-content}
+.g-hc,.g-head,.g-row{display:flex;align-items:stretch}
+.g-label{width:var(--namew);flex:0 0 var(--namew);font-size:11px;font-weight:700;display:flex;align-items:center;padding-right:4px;color:var(--muted)}
+.g-track{position:relative;height:36px;border-bottom:1px solid var(--line);background:
+  repeating-linear-gradient(90deg,var(--bg) 0,var(--bg) calc(var(--slot) - 1px),var(--line) calc(var(--slot) - 1px),var(--line) var(--slot))}
+.g-head .g-track{height:22px;background:transparent;border-bottom:1px solid var(--line)}
+.g-slotlab{position:absolute;top:0;font-size:9px;color:var(--muted);transform:translateX(-50%);white-space:nowrap}
+.g-hc .g-track{height:18px;display:flex}
+.g-hc-cell{flex:0 0 var(--slot);height:100%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#fff}
+.g-hc-cell.ok{background:var(--blue)}
+.g-hc-cell.zero{background:var(--risk)}
+.g-block{position:absolute;top:4px;bottom:4px;border-radius:6px;background:var(--accent);color:var(--accent-ink);
+  font-size:10px;font-weight:700;padding:0 6px 0 8px;display:flex;align-items:center;overflow:hidden;
+  box-shadow:0 1px 2px rgba(0,0,0,.08);cursor:grab;user-select:none;touch-action:none;z-index:2}
+.g-block.adj{background:color-mix(in srgb, var(--blue) 35%, var(--accent))}
+.g-block .g-txt{pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.g-block .g-rz{position:absolute;right:0;top:0;bottom:0;width:14px;cursor:ew-resize;
+  background:linear-gradient(90deg,transparent,rgba(0,0,0,.12));border-radius:0 6px 6px 0}
+.g-row.drop{outline:2px solid var(--blue);outline-offset:-2px;background:color-mix(in srgb, var(--blue) 8%, transparent)}
+.day-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.day-actions button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;font-family:inherit}
+.day-actions .del{color:var(--risk)}
+.sel-info{font-size:12px;color:var(--muted);margin-top:8px;min-height:1.4em}
 </style>
 </head>
 <body>
@@ -80,26 +104,30 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
     <div class="head">
       <h1>シフトボード</h1>
       <div class="mnav">
-        <button onclick="moveMonth(-1)">◀</button>
+        <button type="button" onclick="moveMonth(-1)">◀</button>
         <span class="mon" id="monLabel"></span>
-        <button onclick="moveMonth(1)">▶</button>
+        <button type="button" onclick="moveMonth(1)">▶</button>
       </div>
     </div>
     <div class="tabs" id="tabs"></div>
     <div class="sum" id="summary"></div>
+    <div class="tools" id="tools"></div>
   </div>
   <div id="content"><p class="msg">読み込み中…</p></div>
-  <div class="foot">board v2.1</div>
+  <div class="foot">board v3.0</div>
 </div>
 <script>
 const LIFF_ID = '2010649060-38kc0rNy';
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxeXoT_E22dAyb_rz7hH0Q0_JeJqqhNJyV-VfGtvDpVjVZlEtUH4wxKUY8i64H66VFT/exec';
+const SLOT_PX = 28;
 
 let userId = null;
-let D = null;            // boardData
+let D = null;
 let cur = { y: 0, m: 0 };
 let storeId = null;
 let selDate = null;
+let selShiftId = null;
+let drag = null; // { mode:'resize'|'move', id, startX, startY, startH, endH, staffId, rowEls }
 
 function api(payload){
   return fetch(GAS_API_URL, { method:'POST', body: JSON.stringify(payload) })
@@ -110,7 +138,8 @@ function setMsg(t, isErr){
   document.getElementById('content').innerHTML = '<div class="card"><p class="msg' + (isErr ? ' err' : '') + '">' + t + '</p></div>';
 }
 function hLabel(h){ return Math.floor(h) + ':' + (h % 1 ? '30' : '00'); }
-function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function snapHalf(h){ return Math.round(h * 2) / 2; }
 
 function boot(){
   setMsg('LIFFを初期化中…');
@@ -141,11 +170,11 @@ function load(){
           '<code class="uid">' + esc(d.userId) + '</code>' +
           '<p style="font-size:12.5px;color:var(--muted)">登録したらこのページを開き直してください。</p>' +
           '</div>';
+        document.getElementById('tools').innerHTML = '';
         return;
       }
       D = d;
       if(!storeId || !D.stores.some(s => s.id === storeId)) storeId = D.stores.length ? D.stores[0].id : null;
-      if(!selDate) selDate = null;
       render();
     })
     .catch(function(e){ setMsg('読み込みエラー: ' + e.message, true); });
@@ -155,7 +184,7 @@ function moveMonth(dir){
   cur.m += dir;
   if(cur.m < 1){ cur.m = 12; cur.y--; }
   if(cur.m > 12){ cur.m = 1; cur.y++; }
-  selDate = null;
+  selDate = null; selShiftId = null;
   load();
 }
 
@@ -163,12 +192,13 @@ function store(){ return D.stores.find(s => s.id === storeId); }
 function staffOf(id){ return D.staff.find(s => s.id === id) || { name: id, wage: 0 }; }
 function shiftsOn(dateStr){ return D.shifts.filter(s => s.storeId === storeId && s.date === dateStr); }
 function dstr(d){ return cur.y + '-' + String(cur.m).padStart(2,'0') + '-' + String(d).padStart(2,'0'); }
+function storeStaff(){ return D.staff.filter(s => s.storeId === storeId); }
 
 function render(){
   document.getElementById('monLabel').textContent = cur.y + '年' + cur.m + '月';
   const tabs = document.getElementById('tabs');
   tabs.innerHTML = D.stores.map(s =>
-    '<button class="' + (s.id === storeId ? 'on' : '') + '" onclick="switchStore(\'' + esc(s.id) + '\')">' + esc(s.name) + (s.editable ? '' : '（閲覧）') + '</button>'
+    '<button type="button" class="' + (s.id === storeId ? 'on' : '') + '" onclick="switchStore(\'' + esc(s.id) + '\')">' + esc(s.name) + (s.editable ? '' : '（閲覧）') + '</button>'
   ).join('');
   const st = store();
   const banner = document.getElementById('banner');
@@ -183,11 +213,18 @@ function render(){
     '<span>合計 <b>' + Math.round(hours * 10) / 10 + '</b>時間</span>' +
     '<span>概算人件費 <b>¥' + Math.round(cost).toLocaleString() + '</b></span>';
 
+  const tools = document.getElementById('tools');
+  if(st && st.editable){
+    tools.innerHTML = '<button type="button" class="toolbtn primary" onclick="doCopyPrevMonth()">前月コピー</button>' +
+      '<span class="hint" style="margin:0;align-self:center">前月の確定シフトをこの月へ複製（同日同人はスキップ）</span>';
+  } else tools.innerHTML = '';
+
   let html = renderInbox() + renderCal();
   if(selDate) html += renderDay();
   document.getElementById('content').innerHTML = html;
+  if(selDate) bindGantt();
 }
-function switchStore(id){ storeId = id; selDate = null; render(); }
+function switchStore(id){ storeId = id; selDate = null; selShiftId = null; render(); }
 
 function renderInbox(){
   const st = store();
@@ -200,10 +237,10 @@ function renderInbox(){
     const dLabel = Number(dParts[1]) + '/' + Number(dParts[2]);
     if(r.start === '' || r.start === null){
       html += '<div class="inbox-item"><span class="who">' + who + '</span><span class="when">' + dLabel + ' 休み希望</span>' +
-        (st.editable ? '<button class="btn-ok" onclick="ackRequest(\'' + esc(r.id) + '\')">確認済みにする</button>' : '') + '</div>';
+        (st.editable ? '<button type="button" class="btn-ok" onclick="ackRequest(\'' + esc(r.id) + '\')">確認済みにする</button>' : '') + '</div>';
     } else {
       html += '<div class="inbox-item"><span class="who">' + who + '</span><span class="when">' + dLabel + ' ' + hLabel(r.start) + '〜' + hLabel(r.end) + '</span>' +
-        (st.editable ? '<button class="btn-reflect" onclick="reflect(\'' + esc(r.id) + '\')">シフトに反映</button>' : '') + '</div>';
+        (st.editable ? '<button type="button" class="btn-reflect" onclick="reflect(\'' + esc(r.id) + '\')">シフトに反映</button>' : '') + '</div>';
     }
   });
   return html + '</div>';
@@ -212,47 +249,214 @@ function renderInbox(){
 function renderCal(){
   const days = new Date(cur.y, cur.m, 0).getDate();
   const first = new Date(cur.y, cur.m - 1, 1).getDay();
-  let html = '<div class="card"><h2>' + cur.m + '月カレンダー（日付をタップで編集）</h2><div class="cal">';
+  let html = '<div class="card"><h2>' + cur.m + '月カレンダー（日付をタップで日表示ガント）</h2><div class="cal">';
   html += ['日','月','火','水','木','金','土'].map(w => '<div class="wd">' + w + '</div>').join('');
-  for(let i = 0; i < first; i++) html += '<button class="d blank"></button>';
+  for(let i = 0; i < first; i++) html += '<button type="button" class="d blank"></button>';
   for(let d = 1; d <= days; d++){
     const ds = dstr(d);
     const n = shiftsOn(ds).length;
-    html += '<button class="d' + (selDate === ds ? ' sel' : '') + '" onclick="pickDay(\'' + ds + '\')">' +
+    html += '<button type="button" class="d' + (selDate === ds ? ' sel' : '') + '" onclick="pickDay(\'' + ds + '\')">' +
       '<span class="num">' + d + '</span><br>' +
       (n ? '<span class="cnt">' + n + '人</span>' : '<span class="zero">0人</span>') + '</button>';
   }
   return html + '</div></div>';
 }
-function pickDay(ds){ selDate = ds; render(); }
+function pickDay(ds){ selDate = ds; selShiftId = null; render(); }
+
+function slotsOf(st){
+  const slots = [];
+  for(let t = st.open; t < st.close; t += 0.5) slots.push(t);
+  return slots;
+}
 
 function renderDay(){
   const st = store();
-  const list = shiftsOn(selDate).slice().sort((a,b) => a.start - b.start);
+  const list = shiftsOn(selDate);
   const dParts = selDate.split('-');
-  let html = '<div class="card"><h2>' + Number(dParts[1]) + '月' + Number(dParts[2]) + '日のシフト（' + esc(st.name) + '）</h2>';
-  if(!list.length) html += '<p class="msg" style="margin:6px 0">まだシフトがありません</p>';
+  const slots = slotsOf(st);
+  const trackW = slots.length * SLOT_PX;
+  const staffRows = storeStaff().slice();
+  // 他店扱いで当日シフトがある人は末尾に
   list.forEach(function(s){
-    html += '<div class="shift-item"><span class="who">' + esc(staffOf(s.staffId).name) + '</span>' +
-      '<span class="time">' +
-      (s.origStart !== '' && s.origStart !== null && s.origStart !== undefined && String(s.origStart) !== '' ? '<span class="orig">' + hLabel(s.origStart) + '〜' + hLabel(s.origEnd) + '</span>' : '') +
-      hLabel(s.start) + '〜' + hLabel(s.end) + '</span>' +
-      (st.editable ? '<button onclick="editShift(\'' + esc(s.id) + '\')">時間変更</button><button class="del" onclick="removeShift(\'' + esc(s.id) + '\')">削除</button>' : '') +
-      '</div>';
+    if(!staffRows.some(x => x.id === s.staffId)) staffRows.push(staffOf(s.staffId));
   });
+
+  // 時間帯別人数
+  const counts = slots.map(function(t){
+    return list.filter(s => s.start <= t && s.end > t).length;
+  });
+
+  let html = '<div class="card"><h2>' + Number(dParts[1]) + '月' + Number(dParts[2]) + '日 ガント（' + esc(st.name) + '）</h2>';
+  html += '<p class="hint">ブロック右端ドラッグ＝終了時刻（30分単位）／上下ドラッグ＝担当変更。タップで選択→時間変更・削除。</p>';
+  html += '<div class="gwrap"><div class="gantt" id="gantt" style="--slot:' + SLOT_PX + 'px">';
+
+  // ヘッダ
+  html += '<div class="g-head"><div class="g-label"></div><div class="g-track" style="width:' + trackW + 'px;min-width:' + trackW + 'px">';
+  slots.forEach(function(t, i){
+    if(t % 1 === 0) html += '<span class="g-slotlab" style="left:' + (i * SLOT_PX) + 'px">' + Math.floor(t) + '</span>';
+  });
+  html += '</div></div>';
+
+  // 人数バー
+  html += '<div class="g-hc"><div class="g-label">人数</div><div class="g-track" style="width:' + trackW + 'px;min-width:' + trackW + 'px;display:flex">';
+  counts.forEach(function(n){
+    html += '<div class="g-hc-cell ' + (n ? 'ok' : 'zero') + '">' + n + '</div>';
+  });
+  html += '</div></div>';
+
+  // スタッフ行
+  staffRows.forEach(function(sf){
+    html += '<div class="g-row" data-staff-id="' + esc(sf.id) + '"><div class="g-label">' + esc(sf.name) + '</div>';
+    html += '<div class="g-track" style="width:' + trackW + 'px;min-width:' + trackW + 'px" data-staff-id="' + esc(sf.id) + '">';
+    list.filter(s => s.staffId === sf.id).forEach(function(s){
+      const left = (s.start - st.open) * 2 * SLOT_PX;
+      const width = Math.max((s.end - s.start) * 2 * SLOT_PX, SLOT_PX);
+      const adj = s.changed === '調整済み' || s.changed === '手動追加' || s.changed === '前月コピー';
+      html += '<div class="g-block' + (adj ? ' adj' : '') + (selShiftId === s.id ? ' sel' : '') +
+        '" data-id="' + esc(s.id) + '" style="left:' + left + 'px;width:' + width + 'px">' +
+        '<span class="g-txt">' + hLabel(s.start) + '〜' + hLabel(s.end) + '</span>' +
+        (st.editable ? '<span class="g-rz" data-rz="1"></span>' : '') +
+        '</div>';
+    });
+    html += '</div></div>';
+  });
+
+  html += '</div></div>';
+
   if(st.editable){
+    html += '<div class="day-actions" id="dayActions">' +
+      '<button type="button" onclick="editSelectedShift()">時間を数値入力</button>' +
+      '<button type="button" class="del" onclick="removeSelectedShift()">選択を削除</button>' +
+      '</div>';
+    html += '<div class="sel-info" id="selInfo">' + (selShiftId ? '選択中: ' + esc(staffOf((list.find(x=>x.id===selShiftId)||{}).staffId||'').name) : 'ブロックをタップして選択') + '</div>';
     html += '<div class="addform">' +
-      '<select id="addStaff">' + D.staff.filter(s => s.storeId === storeId).map(s => '<option value="' + esc(s.id) + '">' + esc(s.name) + '</option>').join('') + '</select>' +
+      '<select id="addStaff">' + storeStaff().map(s => '<option value="' + esc(s.id) + '">' + esc(s.name) + '</option>').join('') + '</select>' +
       '<select id="addStart">' + timeOpts(st.open, st.close - 0.5, st.open) + '</select><span>〜</span>' +
       '<select id="addEnd">' + timeOpts(st.open + 0.5, st.close, st.close) + '</select>' +
-      '<button class="go" onclick="manualAdd()">追加</button></div>';
+      '<button type="button" class="go" onclick="manualAdd()">追加</button></div>';
   }
   return html + '</div>';
 }
+
 function timeOpts(open, close, sel){
   let s = '';
-  for(let t = open; t <= close; t += 0.5) s += '<option value="' + t + '"' + (t === sel ? ' selected' : '') + '>' + hLabel(t) + '</option>';
+  for(let t = open; t <= close + 1e-9; t = Math.round((t + 0.5) * 2) / 2)
+    s += '<option value="' + t + '"' + (t === sel ? ' selected' : '') + '>' + hLabel(t) + '</option>';
   return s;
+}
+
+let ganttWinBound = false;
+function bindGantt(){
+  const st = store();
+  if(!st || !st.editable) return;
+  const root = document.getElementById('gantt');
+  if(!root) return;
+
+  root.querySelectorAll('.g-block').forEach(function(el){
+    el.addEventListener('pointerdown', onBlockDown);
+  });
+  if(!ganttWinBound){
+    ganttWinBound = true;
+    window.addEventListener('pointermove', onDragMove);
+    window.addEventListener('pointerup', onDragUp);
+    window.addEventListener('pointercancel', onDragUp);
+  }
+}
+
+function onBlockDown(e){
+  const st = store();
+  if(!st || !st.editable) return;
+  const block = e.currentTarget;
+  const id = block.getAttribute('data-id');
+  const s = D.shifts.find(x => x.id === id);
+  if(!s) return;
+  selShiftId = id;
+  const info = document.getElementById('selInfo');
+  if(info) info.textContent = '選択中: ' + staffOf(s.staffId).name + ' ' + hLabel(s.start) + '〜' + hLabel(s.end);
+
+  const isRz = e.target && e.target.getAttribute('data-rz') === '1';
+  drag = {
+    mode: isRz ? 'resize' : 'move',
+    id: id,
+    startX: e.clientX,
+    startY: e.clientY,
+    startH: s.start,
+    endH: s.end,
+    staffId: s.staffId,
+    moved: false,
+    block: block
+  };
+  try { block.setPointerCapture(e.pointerId); } catch(_){}
+  e.preventDefault();
+}
+
+function onDragMove(e){
+  if(!drag) return;
+  const st = store();
+  const dx = e.clientX - drag.startX;
+  const dy = e.clientY - drag.startY;
+  if(Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+
+  if(drag.mode === 'resize'){
+    const dSlots = Math.round(dx / SLOT_PX);
+    let newEnd = snapHalf(drag.endH + dSlots * 0.5);
+    if(newEnd <= drag.startH) newEnd = drag.startH + 0.5;
+    if(newEnd > st.close) newEnd = st.close;
+    const left = (drag.startH - st.open) * 2 * SLOT_PX;
+    const width = Math.max((newEnd - drag.startH) * 2 * SLOT_PX, SLOT_PX);
+    drag.block.style.left = left + 'px';
+    drag.block.style.width = width + 'px';
+    drag.block.querySelector('.g-txt').textContent = hLabel(drag.startH) + '〜' + hLabel(newEnd);
+    drag.previewEnd = newEnd;
+  } else {
+    // 上下で担当行ハイライト
+    document.querySelectorAll('.g-row').forEach(r => r.classList.remove('drop'));
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const row = el && el.closest ? el.closest('.g-row') : null;
+    if(row) row.classList.add('drop');
+    drag.previewStaff = row ? row.getAttribute('data-staff-id') : null;
+  }
+}
+
+function onDragUp(e){
+  if(!drag) return;
+  const st = store();
+  const d = drag;
+  drag = null;
+  document.querySelectorAll('.g-row').forEach(r => r.classList.remove('drop'));
+
+  if(!d.moved){
+    // タップ選択のみ
+    const info = document.getElementById('selInfo');
+    const s = D.shifts.find(x => x.id === d.id);
+    if(info && s) info.textContent = '選択中: ' + staffOf(s.staffId).name + ' ' + hLabel(s.start) + '〜' + hLabel(s.end);
+    return;
+  }
+
+  if(d.mode === 'resize' && d.previewEnd != null && d.previewEnd !== d.endH){
+    setMsg('時間を更新中…');
+    api({ action:'updateShift', userId: userId, shiftId: d.id, start: d.startH, end: d.previewEnd })
+      .then(load).catch(function(err){ alert('エラー: ' + err.message); load(); });
+    return;
+  }
+  if(d.mode === 'move' && d.previewStaff && d.previewStaff !== d.staffId){
+    setMsg('担当を変更中…');
+    api({ action:'updateShift', userId: userId, shiftId: d.id, start: d.startH, end: d.endH, staffId: d.previewStaff })
+      .then(load).catch(function(err){ alert('エラー: ' + err.message); load(); });
+  }
+}
+
+function doCopyPrevMonth(){
+  const st = store();
+  if(!st || !st.editable) return;
+  if(!confirm(cur.y + '年' + cur.m + '月へ、前月の確定シフトをコピーします。\n同じ人・同じ日が既にある場合はスキップします。\n実行しますか？')) return;
+  setMsg('前月コピー中…');
+  api({ action:'copyPrevMonth', userId: userId, storeId: storeId, year: cur.y, month: cur.m })
+    .then(function(r){
+      alert('コピー完了\n元: ' + r.fromYear + '年' + r.fromMonth + '月（' + r.sourceCount + '件）\n複製: ' + r.copied + '件 / スキップ: ' + r.skipped + '件');
+      load();
+    })
+    .catch(function(e){ alert('エラー: ' + e.message); load(); });
 }
 
 function reflect(reqId){
@@ -276,6 +480,14 @@ function manualAdd(){
   api({ action:'addShift', userId: userId, shift: { staffId: staffSel, storeId: storeId, date: selDate, start: s, end: en } })
     .then(load).catch(function(e){ alert('エラー: ' + e.message); load(); });
 }
+function editSelectedShift(){
+  if(!selShiftId){ alert('先にガントのブロックをタップして選択してください'); return; }
+  editShift(selShiftId);
+}
+function removeSelectedShift(){
+  if(!selShiftId){ alert('先にガントのブロックをタップして選択してください'); return; }
+  removeShift(selShiftId);
+}
 function editShift(id){
   const s = D.shifts.find(x => x.id === id);
   const st = store();
@@ -292,6 +504,7 @@ function editShift(id){
 function removeShift(id){
   if(!confirm('このシフトを削除しますか？（希望から反映したものは受信箱に戻ります）')) return;
   setMsg('削除中…');
+  selShiftId = null;
   api({ action:'deleteShift', userId: userId, shiftId: id })
     .then(load).catch(function(e){ alert('エラー: ' + e.message); load(); });
 }
