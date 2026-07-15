@@ -114,7 +114,7 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
     <div class="tools" id="tools"></div>
   </div>
   <div id="content"><p class="msg">読み込み中…</p></div>
-  <div class="foot">board v3.0-liff</div>
+  <div class="foot">board v3.1-liff</div>
 </div>
 <script>
 const LIFF_ID = '2010649060-38kc0rNy';
@@ -131,8 +131,19 @@ let drag = null; // { mode:'resize'|'move', id, startX, startY, startH, endH, st
 
 function api(payload){
   return fetch(GAS_API_URL, { method:'POST', body: JSON.stringify(payload) })
-    .then(r => r.json())
-    .then(j => { if(!j.ok) throw new Error(j.error || 'サーバーエラー'); return j.data; });
+    .then(function(r){ return r.text().then(function(t){ return { status: r.status, text: t }; }); })
+    .then(function(res){
+      var j;
+      try { j = JSON.parse(res.text); }
+      catch (e) {
+        // GASがHTMLエラーページを返すケース（データ検証違反など）
+        var m = res.text.match(/max-width:600px">([^<]+)/);
+        var hint = m ? m[1].replace(/\s+/g, ' ').trim() : '';
+        throw new Error(hint || ('サーバー応答が不正です (HTTP ' + res.status + ')。GASのデプロイとスプレッドシート列を確認してください。'));
+      }
+      if(!j.ok) throw new Error(j.error || 'サーバーエラー');
+      return j.data;
+    });
 }
 function setMsg(t, isErr){
   document.getElementById('content').innerHTML = '<div class="card"><p class="msg' + (isErr ? ' err' : '') + '">' + t + '</p></div>';
