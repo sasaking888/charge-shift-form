@@ -136,7 +136,12 @@ function load(){
           '<div class="card"><h2>アクセス権が未登録です</h2>' +
           '<p style="font-size:12.5px">スプレッドシートの「⑥権限マスタ」シートに、下のIDを貼り付けて登録してください（列: LINEユーザーID / 氏名 / 店舗ID / 権限レベル=編集可）。店舗ごとに1行ずつ。</p>' +
           '<code class="uid">' + esc(d.userId) + '</code>' +
-          '<p style="font-size:12.5px;color:var(--muted)">登録したらこのページを開き直してください。</p></div>';
+          '<p style="font-size:12.5px;color:var(--muted)">登録したらこのページを開き直してください。</p>' +
+          '<hr><p style="font-size:11px;color:var(--muted)">【診断情報】</p>' +
+          '<p style="font-size:11px;color:var(--muted)">読んだシート名: ' + esc(d.debugSheetName || '(なし)') + '</p>' +
+          '<p style="font-size:11px;color:var(--muted)">読んだ行数（ヘッダー含む）: ' + esc(d.debugRowCount || 0) + '</p>' +
+          '<p style="font-size:11px;color:var(--muted);word-break:break-all">中身: ' + esc(d.debugRows || '(空)') + '</p>' +
+          '</div>';
         return;
       }
       D = d;
