@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -20,61 +20,132 @@ window.onerror = function(msg, src, line, col){
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <style>
 :root{
-  --bg:#F5F7FA; --surface:#FFFFFF; --ink:#1C2433; --muted:#6B7686;
-  --line:#E4E9F0; --accent:#FFC400; --accent-ink:#3A2E00; --lgreen:#06C755; --risk:#D45B6A; --blue:#3B7DD8;
-  --slot:28px; --namew:56px;
+  --bg:#EEF1F6; --surface:#FFFFFF; --ink:#141B26; --muted:#5B6575;
+  --line:#D8DEE8; --accent:#FFC400; --accent-ink:#3A2E00; --lgreen:#06C755; --risk:#D45B6A; --blue:#3B7DD8;
+  --slot:28px; --namew:64px;
 }
 *{box-sizing:border-box}
-body{margin:0;padding:12px;background:var(--bg);color:var(--ink);
-  font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;font-size:14px;line-height:1.6;
+body{margin:0;padding:12px;padding-bottom:28px;background:var(--bg);color:var(--ink);
+  font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;font-size:14px;line-height:1.55;
   touch-action:manipulation}
 .wrap{max-width:720px;margin:0 auto}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:12px}
-h1{font-size:16px;margin:0}
-h2{font-size:13.5px;margin:0 0 8px;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 14px;margin-bottom:12px;
+  box-shadow:0 1px 2px rgba(20,27,38,.04)}
+h1{font-size:16px;margin:0;font-weight:800}
+h2{font-size:13px;margin:0 0 10px;color:var(--ink);font-weight:700}
 .msg{font-size:13px;color:var(--muted);text-align:center;margin:20px 0}
 .err{color:var(--risk)}
-.banner{background:color-mix(in srgb, var(--accent) 20%, var(--surface));border:1px solid var(--accent);
-  border-radius:8px;padding:6px 10px;font-size:11.5px;margin-bottom:10px;display:none}
+.banner{background:color-mix(in srgb, var(--accent) 22%, var(--surface));border:1px solid var(--accent);
+  border-radius:8px;padding:7px 10px;font-size:11.5px;margin-bottom:10px;display:none}
 .head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap}
 .mnav{display:flex;align-items:center;gap:8px}
-.mnav button,.toolbtn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:4px 10px;font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink)}
-.mnav .mon{font-weight:700;font-size:15px}
-.tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.mnav button,.toolbtn,.modebtn,.iconbtn{
+  border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 10px;
+  font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink)
+}
+.mnav .mon{font-weight:800;font-size:15px;min-width:6.5em;text-align:center}
+.tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center}
 .toolbtn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
 .toolbtn:disabled{opacity:.45;cursor:not-allowed}
 .tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
-.tabs button{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:5px 14px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.tabs button{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;
+  padding:6px 14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
 .tabs button.on{background:var(--ink);border-color:var(--ink);color:#fff}
-.sum{display:flex;gap:14px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
-.sum b{color:var(--ink);font-size:15px}
-.inbox-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}
+.tabs button .tag{font-size:10px;font-weight:600;opacity:.85;margin-left:4px}
+
+/* summary cards */
+.sum-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px}
+.sum-card{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 8px;text-align:center}
+.sum-card .k{font-size:10.5px;color:var(--muted);font-weight:600;margin-bottom:2px}
+.sum-card .v{font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-.02em;word-break:break-all}
+.sum-card .v.sm{font-size:13px}
+
+/* view mode */
+.modes{display:flex;gap:4px;background:var(--bg);border-radius:10px;padding:3px;margin:12px 0 0;border:1px solid var(--line)}
+.modes button{flex:1;border:0;background:transparent;border-radius:8px;padding:7px 6px;font-size:12.5px;
+  font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit}
+.modes button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+
+.hint{font-size:11.5px;color:var(--muted);margin:0 0 8px;line-height:1.5}
+.subnote{font-size:11px;color:var(--muted);margin:6px 0 0}
+
+/* week summary table */
+.wtable{width:100%;border-collapse:collapse;font-size:12.5px}
+.wtable th{text-align:left;font-size:10.5px;color:var(--muted);font-weight:700;padding:0 6px 6px;border-bottom:1px solid var(--line)}
+.wtable th.r,.wtable td.r{text-align:right}
+.wtable td{padding:9px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.wtable tr:last-child td{border-bottom:0}
+.wtable tr.week-row{cursor:pointer}
+.wtable tr.week-row:active{background:var(--bg)}
+.wtable tr.on td{background:color-mix(in srgb, var(--blue) 10%, #fff)}
+.wtable .wk{font-weight:800}
+.wtable .rng{font-size:11px;color:var(--muted);font-weight:600}
+.wtable tfoot td{font-weight:800;padding-top:10px;border-top:1px solid var(--line);border-bottom:0}
+.bar{height:5px;background:var(--line);border-radius:99px;margin-top:4px;overflow:hidden;max-width:72px;margin-left:auto}
+.bar > i{display:block;height:100%;background:var(--blue);border-radius:99px}
+
+/* month cal Mon-start */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .wd{font-size:10px;text-align:center;color:var(--muted);font-weight:700;padding-bottom:2px}
+.cal .wd.sun{color:var(--risk)}
+.cal .wd.sat{color:var(--blue)}
+.cal .d{min-height:48px;border:1px solid var(--line);border-radius:9px;background:var(--surface);
+  font-size:11px;padding:4px;cursor:pointer;text-align:left;font-family:inherit;color:var(--ink)}
+.cal .d.blank{visibility:hidden}
+.cal .d.sel{border-color:var(--blue);border-width:2px;padding:3px}
+.cal .d.today{box-shadow:inset 0 0 0 1.5px var(--accent)}
+.cal .d .num{font-weight:800;font-size:12px}
+.cal .d .num.sun{color:var(--risk)}
+.cal .d .num.sat{color:var(--blue)}
+.cal .d .cnt{display:inline-block;background:var(--blue);color:#fff;border-radius:999px;font-size:9.5px;padding:1px 6px;margin-top:3px;font-weight:700}
+.cal .d .zero{color:var(--risk);font-size:9.5px;font-weight:700;margin-top:3px;display:inline-block}
+
+/* week grid */
+.week-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.week-nav{display:flex;align-items:center;gap:6px}
+.week-nav .ttl{font-weight:800;font-size:13.5px}
+.wgrid{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.wgrid table{border-collapse:collapse;min-width:100%;font-size:11.5px}
+.wgrid th,.wgrid td{border:1px solid var(--line);padding:5px 4px;vertical-align:top}
+.wgrid th{background:var(--bg);font-size:10.5px;font-weight:700;text-align:center;color:var(--muted)}
+.wgrid th.daybtn{cursor:pointer;color:var(--ink)}
+.wgrid th.daybtn:active{background:var(--line)}
+.wgrid th .dn{display:block;font-size:13px;font-weight:800;color:var(--ink);margin-top:1px}
+.wgrid th.today{background:color-mix(in srgb, var(--accent) 28%, var(--bg))}
+.wgrid .name{position:sticky;left:0;background:var(--surface);font-weight:800;font-size:11px;min-width:52px;z-index:1}
+.wgrid .cell{min-width:56px;max-width:72px}
+.wgrid .chip{display:block;background:var(--accent);color:var(--accent-ink);border-radius:5px;
+  padding:2px 4px;font-size:10px;font-weight:700;margin-bottom:3px;line-height:1.3}
+.wgrid .chip.adj{background:color-mix(in srgb, var(--blue) 35%, var(--accent))}
+.wgrid .foot td{background:var(--bg);font-weight:700;font-size:10.5px;text-align:center}
+.week-sum{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;color:var(--muted)}
+.week-sum b{color:var(--ink);font-size:14px}
+
+/* inbox */
+.inbox-head{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;user-select:none}
+.inbox-head h2{margin:0}
+.badge{display:inline-block;background:var(--risk);color:#fff;border-radius:999px;font-size:10px;font-weight:800;
+  padding:1px 7px;margin-left:6px;vertical-align:middle}
+.inbox-body{margin-top:10px}
+.inbox-item{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
 .inbox-item:last-child{border-bottom:0}
-.inbox-item .who{font-weight:700;min-width:5.5em}
+.inbox-item .who{font-weight:800;min-width:5.2em}
 .inbox-item .when{flex:1;color:var(--muted)}
 .inbox-item button{border:0;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
 .btn-reflect{background:var(--lgreen);color:#fff}
 .btn-ok{background:var(--line);color:var(--ink)}
-.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-.cal .wd{font-size:10px;text-align:center;color:var(--muted);font-weight:600}
-.cal .d{min-height:44px;border:1px solid var(--line);border-radius:8px;background:var(--surface);
-  font-size:11px;padding:3px 4px;cursor:pointer;text-align:left;font-family:inherit;color:var(--ink)}
-.cal .d.blank{visibility:hidden}
-.cal .d.sel{border-color:var(--blue);border-width:2px}
-.cal .d .num{font-weight:700}
-.cal .d .cnt{display:inline-block;background:var(--blue);color:#fff;border-radius:999px;font-size:9.5px;padding:0 5px;margin-top:2px}
-.cal .d .zero{color:var(--risk);font-size:9.5px;font-weight:700}
+
 .addform{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:12px}
 .addform select{border:1px solid var(--line);border-radius:8px;padding:7px 6px;background:var(--surface);font-family:inherit;font-size:13px}
 .addform .go{border:0;background:var(--lgreen);color:#fff;border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
 .foot{text-align:center;font-size:10px;color:#9AA3AF;margin-top:8px}
 code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:11px;word-break:break-all;user-select:all;margin-top:8px}
-.hint{font-size:11px;color:var(--muted);margin:0 0 8px}
-/* 日表示ガント */
+
+/* gantt */
 .gwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px}
 .gantt{min-width:max-content}
 .g-hc,.g-head,.g-row{display:flex;align-items:stretch}
-.g-label{width:var(--namew);flex:0 0 var(--namew);font-size:11px;font-weight:700;display:flex;align-items:center;padding-right:4px;color:var(--muted)}
+.g-label{width:var(--namew);flex:0 0 var(--namew);font-size:11px;font-weight:800;display:flex;align-items:center;padding-right:4px;color:var(--ink)}
 .g-track{position:relative;height:36px;border-bottom:1px solid var(--line);background:
   repeating-linear-gradient(90deg,var(--bg) 0,var(--bg) calc(var(--slot) - 1px),var(--line) calc(var(--slot) - 1px),var(--line) var(--slot))}
 .g-head .g-track{height:22px;background:transparent;border-bottom:1px solid var(--line)}
@@ -87,6 +158,7 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
   font-size:10px;font-weight:700;padding:0 6px 0 8px;display:flex;align-items:center;overflow:hidden;
   box-shadow:0 1px 2px rgba(0,0,0,.08);cursor:grab;user-select:none;touch-action:none;z-index:2}
 .g-block.adj{background:color-mix(in srgb, var(--blue) 35%, var(--accent))}
+.g-block.sel{outline:2px solid var(--blue);outline-offset:1px}
 .g-block .g-txt{pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 .g-block .g-rz{position:absolute;right:0;top:0;bottom:0;width:14px;cursor:ew-resize;
   background:linear-gradient(90deg,transparent,rgba(0,0,0,.12));border-radius:0 6px 6px 0}
@@ -95,6 +167,7 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
 .day-actions button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;font-family:inherit}
 .day-actions .del{color:var(--risk)}
 .sel-info{font-size:12px;color:var(--muted);margin-top:8px;min-height:1.4em}
+.backlink{border:0;background:none;color:var(--blue);font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;padding:0;margin:0 0 8px}
 </style>
 </head>
 <body>
@@ -110,11 +183,12 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
       </div>
     </div>
     <div class="tabs" id="tabs"></div>
-    <div class="sum" id="summary"></div>
+    <div class="sum-cards" id="summary"></div>
+    <div class="modes" id="modes"></div>
     <div class="tools" id="tools"></div>
   </div>
   <div id="content"><p class="msg">読み込み中…</p></div>
-  <div class="foot">board v3.1</div>
+  <div class="foot">board v3.2</div>
 </div>
 <script>
 const LIFF_ID = '2010649060-38kc0rNy';
@@ -127,7 +201,10 @@ let cur = { y: 0, m: 0 };
 let storeId = null;
 let selDate = null;
 let selShiftId = null;
-let drag = null; // { mode:'resize'|'move', id, startX, startY, startH, endH, staffId, rowEls }
+let viewMode = 'month'; // month | week | day
+let weekIdx = 0;
+let inboxOpen = null; // null = auto
+let drag = null;
 
 function api(payload){
   return fetch(GAS_API_URL, { method:'POST', body: JSON.stringify(payload) })
@@ -136,7 +213,6 @@ function api(payload){
       var j;
       try { j = JSON.parse(res.text); }
       catch (e) {
-        // GASがHTMLエラーページを返すケース（データ検証違反など）
         var m = res.text.match(/max-width:600px">([^<]+)/);
         var hint = m ? m[1].replace(/\s+/g, ' ').trim() : '';
         throw new Error(hint || ('サーバー応答が不正です (HTTP ' + res.status + ')。GASのデプロイとスプレッドシート列を確認してください。'));
@@ -151,6 +227,7 @@ function setMsg(t, isErr){
 function hLabel(h){ return Math.floor(h) + ':' + (h % 1 ? '30' : '00'); }
 function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function snapHalf(h){ return Math.round(h * 2) / 2; }
+function yen(n){ return '¥' + Math.round(n).toLocaleString(); }
 
 function boot(){
   setMsg('LIFFを初期化中…');
@@ -182,10 +259,14 @@ function load(){
           '<p style="font-size:12.5px;color:var(--muted)">登録したらこのページを開き直してください。</p>' +
           '</div>';
         document.getElementById('tools').innerHTML = '';
+        document.getElementById('summary').innerHTML = '';
+        document.getElementById('modes').innerHTML = '';
         return;
       }
       D = d;
       if(!storeId || !D.stores.some(s => s.id === storeId)) storeId = D.stores.length ? D.stores[0].id : null;
+      const weeks = getWeeksOfMonth();
+      if(weekIdx >= weeks.length) weekIdx = Math.max(0, weeks.length - 1);
       render();
     })
     .catch(function(e){ setMsg('読み込みエラー: ' + e.message, true); });
@@ -195,7 +276,8 @@ function moveMonth(dir){
   cur.m += dir;
   if(cur.m < 1){ cur.m = 12; cur.y--; }
   if(cur.m > 12){ cur.m = 1; cur.y++; }
-  selDate = null; selShiftId = null;
+  selDate = null; selShiftId = null; weekIdx = 0;
+  if(viewMode === 'day') viewMode = 'month';
   load();
 }
 
@@ -204,43 +286,128 @@ function staffOf(id){ return D.staff.find(s => s.id === id) || { name: id, wage:
 function shiftsOn(dateStr){ return D.shifts.filter(s => s.storeId === storeId && s.date === dateStr); }
 function dstr(d){ return cur.y + '-' + String(cur.m).padStart(2,'0') + '-' + String(d).padStart(2,'0'); }
 function storeStaff(){ return D.staff.filter(s => s.storeId === storeId); }
+function daysInMonth(){ return new Date(cur.y, cur.m, 0).getDate(); }
+/** 月曜=0 … 日曜=6 */
+function monDow(y, m, d){ return (new Date(y, m - 1, d).getDay() + 6) % 7; }
+function todayStr(){
+  const n = new Date();
+  return n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
+}
+
+/** 当月の日だけを月曜始まりの週に分割 */
+function getWeeksOfMonth(){
+  const dim = daysInMonth();
+  const weeks = [];
+  let w = { days: [] };
+  for(let d = 1; d <= dim; d++){
+    const dow = monDow(cur.y, cur.m, d);
+    if(d > 1 && dow === 0){
+      weeks.push(w);
+      w = { days: [] };
+    }
+    w.days.push(d);
+  }
+  if(w.days.length) weeks.push(w);
+  weeks.forEach(function(wk, i){
+    wk.index = i;
+    wk.start = wk.days[0];
+    wk.end = wk.days[wk.days.length - 1];
+    wk.label = '第' + (i + 1) + '週';
+    wk.range = cur.m + '/' + wk.start + '〜' + cur.m + '/' + wk.end;
+  });
+  return weeks;
+}
+
+function statsForDays(dayNums){
+  let hours = 0, cost = 0, count = 0;
+  dayNums.forEach(function(d){
+    shiftsOn(dstr(d)).forEach(function(s){
+      count++;
+      const h = s.end - s.start;
+      hours += h;
+      cost += h * (Number(staffOf(s.staffId).wage) || 0);
+    });
+  });
+  return { hours: Math.round(hours * 10) / 10, cost: cost, count: count };
+}
+
+function monthDayList(){
+  const a = [];
+  for(let d = 1; d <= daysInMonth(); d++) a.push(d);
+  return a;
+}
 
 function render(){
   document.getElementById('monLabel').textContent = cur.y + '年' + cur.m + '月';
   const tabs = document.getElementById('tabs');
   tabs.innerHTML = D.stores.map(s =>
-    '<button type="button" class="' + (s.id === storeId ? 'on' : '') + '" onclick="switchStore(\'' + esc(s.id) + '\')">' + esc(s.name) + (s.editable ? '' : '（閲覧）') + '</button>'
+    '<button type="button" class="' + (s.id === storeId ? 'on' : '') + '" onclick="switchStore(\'' + esc(s.id) + '\')">' +
+      esc(s.name) + '<span class="tag">' + (s.editable ? '編集' : '閲覧') + '</span></button>'
   ).join('');
   const st = store();
   const banner = document.getElementById('banner');
   if(st && !st.editable){ banner.style.display = 'block'; banner.textContent = 'この店舗は閲覧のみです（編集操作はできません）'; }
   else banner.style.display = 'none';
 
-  const monthShifts = D.shifts.filter(s => s.storeId === storeId);
-  let hours = 0, cost = 0;
-  monthShifts.forEach(s => { const h = s.end - s.start; hours += h; cost += h * staffOf(s.staffId).wage; });
+  const ms = statsForDays(monthDayList());
   document.getElementById('summary').innerHTML =
-    '<span>今月の確定 <b>' + monthShifts.length + '</b>件</span>' +
-    '<span>合計 <b>' + Math.round(hours * 10) / 10 + '</b>時間</span>' +
-    '<span>概算人件費 <b>¥' + Math.round(cost).toLocaleString() + '</b></span>';
+    '<div class="sum-card"><div class="k">今月の確定</div><div class="v">' + ms.count + '<span style="font-size:11px;font-weight:700">件</span></div></div>' +
+    '<div class="sum-card"><div class="k">合計時間</div><div class="v">' + ms.hours + '<span style="font-size:11px;font-weight:700">h</span></div></div>' +
+    '<div class="sum-card"><div class="k">概算人件費</div><div class="v sm">' + yen(ms.cost) + '</div></div>';
+
+  document.getElementById('modes').innerHTML =
+    '<button type="button" class="' + (viewMode === 'month' ? 'on' : '') + '" onclick="setView(\'month\')">月</button>' +
+    '<button type="button" class="' + (viewMode === 'week' ? 'on' : '') + '" onclick="setView(\'week\')">週</button>' +
+    '<button type="button" class="' + (viewMode === 'day' ? 'on' : '') + '" onclick="setView(\'day\')">日</button>';
 
   const tools = document.getElementById('tools');
   if(st && st.editable){
     tools.innerHTML = '<button type="button" class="toolbtn primary" onclick="doCopyPrevMonth()">前月コピー</button>' +
-      '<span class="hint" style="margin:0;align-self:center">前月の確定シフトをこの月へ複製（同日同人はスキップ）</span>';
+      '<span class="hint" style="margin:0">前月の確定をこの月へ（同日同人はスキップ）· 週は月曜始まり· 集計は当月の日のみ</span>';
   } else tools.innerHTML = '';
 
-  let html = renderInbox() + renderCal();
-  if(selDate) html += renderDay();
+  let html = renderInbox();
+  if(viewMode === 'month') html += renderWeekSummary() + renderCal();
+  else if(viewMode === 'week') html += renderWeekView();
+  else html += renderDay();
   document.getElementById('content').innerHTML = html;
-  if(selDate) bindGantt();
+  if(viewMode === 'day' && selDate) bindGantt();
 }
-function switchStore(id){ storeId = id; selDate = null; selShiftId = null; render(); }
+
+function setView(mode){
+  viewMode = mode;
+  if(mode === 'day' && !selDate){
+    const t = todayStr();
+    const prefix = cur.y + '-' + String(cur.m).padStart(2,'0');
+    if(t.indexOf(prefix) === 0) selDate = t;
+    else selDate = dstr(1);
+  }
+  if(mode === 'week'){
+    // 今日が当月ならその週、なければ 0
+    const t = todayStr();
+    const prefix = cur.y + '-' + String(cur.m).padStart(2,'0');
+    if(t.indexOf(prefix) === 0){
+      const day = Number(t.split('-')[2]);
+      const weeks = getWeeksOfMonth();
+      const idx = weeks.findIndex(w => w.days.indexOf(day) >= 0);
+      if(idx >= 0) weekIdx = idx;
+    }
+  }
+  selShiftId = null;
+  render();
+}
+
+function switchStore(id){ storeId = id; selDate = null; selShiftId = null; weekIdx = 0; render(); }
 
 function renderInbox(){
   const st = store();
   const list = D.requests.filter(r => r.storeId === storeId && r.status !== '反映済み');
-  let html = '<div class="card"><h2>LINE希望 受信箱（未反映 ' + list.length + '件）</h2>';
+  const open = inboxOpen === null ? list.length > 0 : inboxOpen;
+  let html = '<div class="card"><div class="inbox-head" onclick="toggleInbox()">' +
+    '<h2>LINE希望 受信箱' + (list.length ? '<span class="badge">' + list.length + '</span>' : '') + '</h2>' +
+    '<span style="font-size:12px;color:var(--muted);font-weight:700">' + (open ? '閉じる ▴' : '開く ▾') + '</span></div>';
+  if(!open) return html + '</div>';
+  html += '<div class="inbox-body">';
   if(!list.length){ html += '<p class="msg" style="margin:6px 0">未反映の希望はありません</p>'; }
   list.forEach(function(r){
     const who = esc(staffOf(r.staffId).name);
@@ -248,31 +415,202 @@ function renderInbox(){
     const dLabel = Number(dParts[1]) + '/' + Number(dParts[2]);
     if(r.start === '' || r.start === null){
       html += '<div class="inbox-item"><span class="who">' + who + '</span><span class="when">' + dLabel + ' 休み希望</span>' +
-        (st.editable ? '<button type="button" class="btn-ok" onclick="ackRequest(\'' + esc(r.id) + '\')">確認済みにする</button>' : '') + '</div>';
+        (st.editable ? '<button type="button" class="btn-ok" onclick="ackRequest(\'' + esc(r.id) + '\')">確認済み</button>' : '') + '</div>';
     } else {
       html += '<div class="inbox-item"><span class="who">' + who + '</span><span class="when">' + dLabel + ' ' + hLabel(r.start) + '〜' + hLabel(r.end) + '</span>' +
-        (st.editable ? '<button type="button" class="btn-reflect" onclick="reflect(\'' + esc(r.id) + '\')">シフトに反映</button>' : '') + '</div>';
+        (st.editable ? '<button type="button" class="btn-reflect" onclick="reflect(\'' + esc(r.id) + '\')">反映</button>' : '') + '</div>';
     }
   });
-  return html + '</div>';
+  return html + '</div></div>';
+}
+function toggleInbox(){
+  const list = D.requests.filter(r => r.storeId === storeId && r.status !== '反映済み');
+  const open = inboxOpen === null ? list.length > 0 : inboxOpen;
+  inboxOpen = !open;
+  render();
+}
+
+function renderWeekSummary(){
+  const weeks = getWeeksOfMonth();
+  const monthCost = statsForDays(monthDayList()).cost || 1;
+  let html = '<div class="card"><h2>週ごとの確定・人件費 <span style="font-weight:600;color:var(--muted);font-size:11px">月曜始まり · 当月のみ</span></h2>';
+  html += '<p class="hint">行をタップでその週ビューへ。金額は確定シフト×時給の概算です。</p>';
+  html += '<table class="wtable"><thead><tr>' +
+    '<th>週</th><th class="r">確定</th><th class="r">時間</th><th class="r">概算人件費</th></tr></thead><tbody>';
+  weeks.forEach(function(wk){
+    const stt = statsForDays(wk.days);
+    const pct = Math.min(100, Math.round((stt.cost / monthCost) * 100));
+    html += '<tr class="week-row' + (weekIdx === wk.index && viewMode === 'week' ? ' on' : '') +
+      '" onclick="openWeek(' + wk.index + ')">' +
+      '<td><div class="wk">' + esc(wk.label) + '</div><div class="rng">' + esc(wk.range) + '</div></td>' +
+      '<td class="r">' + stt.count + '件</td>' +
+      '<td class="r">' + stt.hours + 'h</td>' +
+      '<td class="r">' + yen(stt.cost) +
+        '<div class="bar"><i style="width:' + pct + '%"></i></div></td></tr>';
+  });
+  const ms = statsForDays(monthDayList());
+  html += '</tbody><tfoot><tr><td>月計</td><td class="r">' + ms.count + '件</td><td class="r">' +
+    ms.hours + 'h</td><td class="r">' + yen(ms.cost) + '</td></tr></tfoot></table></div>';
+  return html;
+}
+
+function openWeek(i){
+  weekIdx = i;
+  viewMode = 'week';
+  selShiftId = null;
+  render();
 }
 
 function renderCal(){
-  const days = new Date(cur.y, cur.m, 0).getDate();
-  const first = new Date(cur.y, cur.m - 1, 1).getDay();
-  let html = '<div class="card"><h2>' + cur.m + '月カレンダー（日付をタップで日表示ガント）</h2><div class="cal">';
-  html += ['日','月','火','水','木','金','土'].map(w => '<div class="wd">' + w + '</div>').join('');
-  for(let i = 0; i < first; i++) html += '<button type="button" class="d blank"></button>';
+  const days = daysInMonth();
+  // 月曜始まり: 1日の monDow が先頭の空白数
+  const lead = monDow(cur.y, cur.m, 1);
+  const today = todayStr();
+  let html = '<div class="card"><h2>' + cur.m + '月カレンダー</h2>';
+  html += '<p class="hint">日付タップで日ガント。週は月曜始まり。</p><div class="cal">';
+  html += ['月','火','水','木','金','土','日'].map(function(w, i){
+    const cls = i === 6 ? 'wd sun' : (i === 5 ? 'wd sat' : 'wd');
+    return '<div class="' + cls + '">' + w + '</div>';
+  }).join('');
+  for(let i = 0; i < lead; i++) html += '<button type="button" class="d blank"></button>';
   for(let d = 1; d <= days; d++){
     const ds = dstr(d);
     const n = shiftsOn(ds).length;
-    html += '<button type="button" class="d' + (selDate === ds ? ' sel' : '') + '" onclick="pickDay(\'' + ds + '\')">' +
-      '<span class="num">' + d + '</span><br>' +
+    const dow = monDow(cur.y, cur.m, d);
+    let numCls = 'num';
+    if(dow === 6) numCls += ' sun';
+    if(dow === 5) numCls += ' sat';
+    html += '<button type="button" class="d' + (selDate === ds ? ' sel' : '') + (ds === today ? ' today' : '') +
+      '" onclick="pickDay(\'' + ds + '\')">' +
+      '<span class="' + numCls + '">' + d + '</span><br>' +
       (n ? '<span class="cnt">' + n + '人</span>' : '<span class="zero">0人</span>') + '</button>';
   }
   return html + '</div></div>';
 }
-function pickDay(ds){ selDate = ds; selShiftId = null; render(); }
+
+function pickDay(ds){
+  selDate = ds;
+  selShiftId = null;
+  viewMode = 'day';
+  // 週indexも合わせる
+  const day = Number(ds.split('-')[2]);
+  const weeks = getWeeksOfMonth();
+  const idx = weeks.findIndex(w => w.days.indexOf(day) >= 0);
+  if(idx >= 0) weekIdx = idx;
+  render();
+}
+
+function moveWeek(dir){
+  const weeks = getWeeksOfMonth();
+  weekIdx = Math.max(0, Math.min(weeks.length - 1, weekIdx + dir));
+  render();
+}
+
+function renderWeekView(){
+  const weeks = getWeeksOfMonth();
+  if(!weeks.length) return '<div class="card"><p class="msg">週がありません</p></div>';
+  const wk = weeks[weekIdx] || weeks[0];
+  weekIdx = wk.index;
+  const stt = statsForDays(wk.days);
+  const today = todayStr();
+  const wnames = ['月','火','水','木','金','土','日'];
+
+  // 7カラム: 当月の日だけ埋める（月またぎの空欄は空白）
+  // 先頭日の monDow から埋める
+  const cols = []; // { day|null, ds|null, label }
+  const lead = monDow(cur.y, cur.m, wk.days[0]);
+  for(let i = 0; i < lead; i++) cols.push({ day: null, ds: null, wd: wnames[i] });
+  wk.days.forEach(function(d){
+    const dow = monDow(cur.y, cur.m, d);
+    cols.push({ day: d, ds: dstr(d), wd: wnames[dow] });
+  });
+  while(cols.length < 7) cols.push({ day: null, ds: null, wd: wnames[cols.length] });
+  // 週の途中終わりの場合は末尾を埋めるが、当月外は null のまま
+
+  const staffRows = storeStaff().slice();
+  // 週内シフトの他店要員も
+  wk.days.forEach(function(d){
+    shiftsOn(dstr(d)).forEach(function(s){
+      if(!staffRows.some(x => x.id === s.staffId)) staffRows.push(staffOf(s.staffId));
+    });
+  });
+
+  let html = '<div class="card">';
+  html += '<div class="week-head"><div class="week-nav">' +
+    '<button type="button" onclick="moveWeek(-1)"' + (weekIdx <= 0 ? ' disabled' : '') + '>◀</button>' +
+    '<span class="ttl">' + esc(wk.label) + '（' + esc(wk.range) + '）</span>' +
+    '<button type="button" onclick="moveWeek(1)"' + (weekIdx >= weeks.length - 1 ? ' disabled' : '') + '>▶</button>' +
+    '</div></div>';
+  html += '<div class="week-sum">' +
+    '<span>確定 <b>' + stt.count + '</b>件</span>' +
+    '<span>時間 <b>' + stt.hours + '</b>h</span>' +
+    '<span>概算人件費 <b>' + yen(stt.cost) + '</b></span></div>';
+  html += '<p class="hint" style="margin-top:10px">日付見出しタップで日ガント。集計は当月の日のみ。</p>';
+
+  html += '<div class="wgrid"><table><thead><tr><th class="name">スタッフ</th>';
+  cols.forEach(function(c){
+    if(c.day == null){
+      html += '<th>' + c.wd + '</th>';
+    } else {
+      const isT = c.ds === today;
+      html += '<th class="daybtn' + (isT ? ' today' : '') + '" onclick="pickDay(\'' + c.ds + '\')">' +
+        c.wd + '<span class="dn">' + c.day + '</span></th>';
+    }
+  });
+  html += '</tr></thead><tbody>';
+
+  if(!staffRows.length){
+    html += '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:16px">スタッフがいません</td></tr>';
+  }
+  staffRows.forEach(function(sf){
+    html += '<tr><td class="name">' + esc(sf.name) + '</td>';
+    cols.forEach(function(c){
+      if(c.day == null){ html += '<td class="cell"></td>'; return; }
+      const list = shiftsOn(c.ds).filter(s => s.staffId === sf.id);
+      html += '<td class="cell">';
+      if(!list.length) html += '<span style="color:var(--muted)">·</span>';
+      list.forEach(function(s){
+        const adj = s.changed === '調整済み' || s.changed === '手動追加' || s.changed === '前月コピー';
+        html += '<span class="chip' + (adj ? ' adj' : '') + '">' + hLabel(s.start) + '–' + hLabel(s.end) + '</span>';
+      });
+      html += '</td>';
+    });
+    html += '</tr>';
+  });
+
+  // 日別人件費・人数
+  html += '<tr class="foot"><td class="name">人数</td>';
+  cols.forEach(function(c){
+    if(c.day == null){ html += '<td></td>'; return; }
+    html += '<td>' + shiftsOn(c.ds).length + '</td>';
+  });
+  html += '</tr><tr class="foot"><td class="name">人件費</td>';
+  cols.forEach(function(c){
+    if(c.day == null){ html += '<td></td>'; return; }
+    const stDay = statsForDays([c.day]);
+    html += '<td style="font-size:10px">' + (stDay.cost ? yen(stDay.cost) : '–') + '</td>';
+  });
+  html += '</tr></tbody></table></div></div>';
+
+  // 人別週内訳
+  html += '<div class="card"><h2>この週の人別（当月）</h2>';
+  let any = false;
+  html += '<table class="wtable"><thead><tr><th>スタッフ</th><th class="r">時間</th><th class="r">概算人件費</th></tr></thead><tbody>';
+  staffRows.forEach(function(sf){
+    let h = 0, c = 0, n = 0;
+    wk.days.forEach(function(d){
+      shiftsOn(dstr(d)).filter(s => s.staffId === sf.id).forEach(function(s){
+        n++; const hh = s.end - s.start; h += hh; c += hh * (Number(sf.wage) || 0);
+      });
+    });
+    if(!n) return;
+    any = true;
+    html += '<tr><td>' + esc(sf.name) + '</td><td class="r">' + (Math.round(h*10)/10) + 'h</td><td class="r">' + yen(c) + '</td></tr>';
+  });
+  if(!any) html += '<tr><td colspan="3" style="color:var(--muted);text-align:center">シフトなし</td></tr>';
+  html += '</tbody></table></div>';
+  return html;
+}
 
 function slotsOf(st){
   const slots = [];
@@ -281,41 +619,47 @@ function slotsOf(st){
 }
 
 function renderDay(){
+  if(!selDate){
+    return '<div class="card"><p class="msg">日付が選ばれていません。月または週から日付を選んでください。</p>' +
+      '<button type="button" class="toolbtn" onclick="setView(\'month\')">月ビューへ</button></div>';
+  }
   const st = store();
   const list = shiftsOn(selDate);
   const dParts = selDate.split('-');
   const slots = slotsOf(st);
   const trackW = slots.length * SLOT_PX;
   const staffRows = storeStaff().slice();
-  // 他店扱いで当日シフトがある人は末尾に
   list.forEach(function(s){
     if(!staffRows.some(x => x.id === s.staffId)) staffRows.push(staffOf(s.staffId));
   });
+  const dayStat = statsForDays([Number(dParts[2])]);
 
-  // 時間帯別人数
   const counts = slots.map(function(t){
     return list.filter(s => s.start <= t && s.end > t).length;
   });
 
-  let html = '<div class="card"><h2>' + Number(dParts[1]) + '月' + Number(dParts[2]) + '日 ガント（' + esc(st.name) + '）</h2>';
-  html += '<p class="hint">ブロック右端ドラッグ＝終了時刻（30分単位）／上下ドラッグ＝担当変更。タップで選択→時間変更・削除。</p>';
+  let html = '<div class="card">';
+  html += '<button type="button" class="backlink" onclick="setView(\'week\')">← 週ビューに戻る</button>';
+  html += '<h2>' + Number(dParts[1]) + '月' + Number(dParts[2]) + '日 ガント（' + esc(st.name) + '）</h2>';
+  html += '<div class="week-sum" style="margin:0 0 10px">' +
+    '<span>確定 <b>' + dayStat.count + '</b>件</span>' +
+    '<span>時間 <b>' + dayStat.hours + '</b>h</span>' +
+    '<span>人件費 <b>' + yen(dayStat.cost) + '</b></span></div>';
+  html += '<p class="hint">右端ドラッグ＝終了時刻／上下＝担当変更。タップで選択→数値変更・削除。</p>';
   html += '<div class="gwrap"><div class="gantt" id="gantt" style="--slot:' + SLOT_PX + 'px">';
 
-  // ヘッダ
   html += '<div class="g-head"><div class="g-label"></div><div class="g-track" style="width:' + trackW + 'px;min-width:' + trackW + 'px">';
   slots.forEach(function(t, i){
     if(t % 1 === 0) html += '<span class="g-slotlab" style="left:' + (i * SLOT_PX) + 'px">' + Math.floor(t) + '</span>';
   });
   html += '</div></div>';
 
-  // 人数バー
   html += '<div class="g-hc"><div class="g-label">人数</div><div class="g-track" style="width:' + trackW + 'px;min-width:' + trackW + 'px;display:flex">';
   counts.forEach(function(n){
     html += '<div class="g-hc-cell ' + (n ? 'ok' : 'zero') + '">' + n + '</div>';
   });
   html += '</div></div>';
 
-  // スタッフ行
   staffRows.forEach(function(sf){
     html += '<div class="g-row" data-staff-id="' + esc(sf.id) + '"><div class="g-label">' + esc(sf.name) + '</div>';
     html += '<div class="g-track" style="width:' + trackW + 'px;min-width:' + trackW + 'px" data-staff-id="' + esc(sf.id) + '">';
@@ -335,11 +679,10 @@ function renderDay(){
   html += '</div></div>';
 
   if(st.editable){
-    html += '<div class="day-actions" id="dayActions">' +
+    html += '<div class="day-actions">' +
       '<button type="button" onclick="editSelectedShift()">時間を数値入力</button>' +
-      '<button type="button" class="del" onclick="removeSelectedShift()">選択を削除</button>' +
-      '</div>';
-    html += '<div class="sel-info" id="selInfo">' + (selShiftId ? '選択中: ' + esc(staffOf((list.find(x=>x.id===selShiftId)||{}).staffId||'').name) : 'ブロックをタップして選択') + '</div>';
+      '<button type="button" class="del" onclick="removeSelectedShift()">選択を削除</button></div>';
+    html += '<div class="sel-info" id="selInfo">' + (selShiftId ? '選択中' : 'ブロックをタップして選択') + '</div>';
     html += '<div class="addform">' +
       '<select id="addStaff">' + storeStaff().map(s => '<option value="' + esc(s.id) + '">' + esc(s.name) + '</option>').join('') + '</select>' +
       '<select id="addStart">' + timeOpts(st.open, st.close - 0.5, st.open) + '</select><span>〜</span>' +
@@ -362,7 +705,6 @@ function bindGantt(){
   if(!st || !st.editable) return;
   const root = document.getElementById('gantt');
   if(!root) return;
-
   root.querySelectorAll('.g-block').forEach(function(el){
     el.addEventListener('pointerdown', onBlockDown);
   });
@@ -420,7 +762,6 @@ function onDragMove(e){
     drag.block.querySelector('.g-txt').textContent = hLabel(drag.startH) + '〜' + hLabel(newEnd);
     drag.previewEnd = newEnd;
   } else {
-    // 上下で担当行ハイライト
     document.querySelectorAll('.g-row').forEach(r => r.classList.remove('drop'));
     const el = document.elementFromPoint(e.clientX, e.clientY);
     const row = el && el.closest ? el.closest('.g-row') : null;
@@ -431,13 +772,11 @@ function onDragMove(e){
 
 function onDragUp(e){
   if(!drag) return;
-  const st = store();
   const d = drag;
   drag = null;
   document.querySelectorAll('.g-row').forEach(r => r.classList.remove('drop'));
 
   if(!d.moved){
-    // タップ選択のみ
     const info = document.getElementById('selInfo');
     const s = D.shifts.find(x => x.id === d.id);
     if(info && s) info.textContent = '選択中: ' + staffOf(s.staffId).name + ' ' + hLabel(s.start) + '〜' + hLabel(s.end);
