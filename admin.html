@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>CHARGE 管理コンソール</title>
+<script>
+window.onerror = function(msg, src, line, col){
+  var box = document.createElement('div');
+  box.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#D45B6A;color:#fff;' +
+    'padding:14px 16px;font-family:sans-serif;font-size:13px;z-index:9999;white-space:pre-wrap';
+  box.textContent = 'クライアントエラー: ' + msg + ' (行:' + line + ')';
+  document.body.prepend(box);
+  return false;
+};
+</script>
+<style>
+:root{
+  --bg:#EEF1F6; --surface:#FFFFFF; --ink:#141B26; --muted:#5B6575;
+  --line:#D8DEE8; --accent:#FFC400; --accent-ink:#3A2E00; --lgreen:#06C755; --risk:#D45B6A; --blue:#3B7DD8;
+  --slot:28px; --namew:96px;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:12px;padding-bottom:28px;background:var(--bg);color:var(--ink);
+  font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;font-size:14px;line-height:1.55;
+  touch-action:manipulation}
+.wrap{max-width:1100px;margin:0 auto}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 14px;margin-bottom:12px;
+  box-shadow:0 1px 2px rgba(20,27,38,.04)}
+h1{font-size:16px;margin:0;font-weight:800}
+h2{font-size:13px;margin:0 0 10px;color:var(--ink);font-weight:700}
+.msg{font-size:13px;color:var(--muted);text-align:center;margin:20px 0}
+.err{color:var(--risk)}
+.banner{background:color-mix(in srgb, var(--accent) 22%, var(--surface));border:1px solid var(--accent);
+  border-radius:8px;padding:7px 10px;font-size:11.5px;margin-bottom:10px;display:none}
+.head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;flex-wrap:wrap}
+.mnav{display:flex;align-items:center;gap:8px}
+.mnav button,.toolbtn,.modebtn,.iconbtn{
+  border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 10px;
+  font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink)
+}
+.mnav .mon{font-weight:800;font-size:15px;min-width:6.5em;text-align:center}
+.tools{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;align-items:center}
+.toolbtn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.toolbtn:disabled{opacity:.45;cursor:not-allowed}
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;
+  padding:6px 14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.tabs button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.tabs button .tag{font-size:10px;font-weight:600;opacity:.85;margin-left:4px}
+
+/* summary cards */
+.sum-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px}
+.sum-card{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 8px;text-align:center}
+.sum-card .k{font-size:10.5px;color:var(--muted);font-weight:600;margin-bottom:2px}
+.sum-card .v{font-size:15px;font-weight:800;color:var(--ink);letter-spacing:-.02em;word-break:break-all}
+.sum-card .v.sm{font-size:13px}
+
+/* view mode */
+.modes{display:flex;gap:4px;background:var(--bg);border-radius:10px;padding:3px;margin:12px 0 0;border:1px solid var(--line)}
+.modes button{flex:1;border:0;background:transparent;border-radius:8px;padding:7px 6px;font-size:12.5px;
+  font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit}
+.modes button.on{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+
+.hint{font-size:11.5px;color:var(--muted);margin:0 0 8px;line-height:1.5}
+.subnote{font-size:11px;color:var(--muted);margin:6px 0 0}
+
+/* week summary table */
+.wtable{width:100%;border-collapse:collapse;font-size:12.5px}
+.wtable th{text-align:left;font-size:10.5px;color:var(--muted);font-weight:700;padding:0 6px 6px;border-bottom:1px solid var(--line)}
+.wtable th.r,.wtable td.r{text-align:right}
+.wtable td{padding:9px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.wtable tr:last-child td{border-bottom:0}
+.wtable tr.week-row{cursor:pointer}
+.wtable tr.week-row:active{background:var(--bg)}
+.wtable tr.on td{background:color-mix(in srgb, var(--blue) 10%, #fff)}
+.wtable .wk{font-weight:800}
+.wtable .rng{font-size:11px;color:var(--muted);font-weight:600}
+.wtable tfoot td{font-weight:800;padding-top:10px;border-top:1px solid var(--line);border-bottom:0}
+.bar{height:5px;background:var(--line);border-radius:99px;margin-top:4px;overflow:hidden;max-width:72px;margin-left:auto}
+.bar > i{display:block;height:100%;background:var(--blue);border-radius:99px}
+
+/* month cal Mon-start */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .wd{font-size:10px;text-align:center;color:var(--muted);font-weight:700;padding-bottom:2px}
+.cal .wd.sun{color:var(--risk)}
+.cal .wd.sat{color:var(--blue)}
+.cal .d{min-height:48px;border:1px solid var(--line);border-radius:9px;background:var(--surface);
+  font-size:11px;padding:4px;cursor:pointer;text-align:left;font-family:inherit;color:var(--ink)}
+.cal .d.blank{visibility:hidden}
+.cal .d.sel{border-color:var(--blue);border-width:2px;padding:3px}
+.cal .d.today{box-shadow:inset 0 0 0 1.5px var(--accent)}
+.cal .d .num{font-weight:800;font-size:12px}
+.cal .d .num.sun{color:var(--risk)}
+.cal .d .num.sat{color:var(--blue)}
+.cal .d .cnt{display:inline-block;background:var(--blue);color:#fff;border-radius:999px;font-size:9.5px;padding:1px 6px;margin-top:3px;font-weight:700}
+.cal .d .zero{color:var(--risk);font-size:9.5px;font-weight:700;margin-top:3px;display:inline-block}
+
+/* week grid */
+.week-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.week-nav{display:flex;align-items:center;gap:6px}
+.week-nav .ttl{font-weight:800;font-size:13.5px}
+.wgrid{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.wgrid table{border-collapse:collapse;min-width:100%;font-size:11.5px}
+.wgrid th,.wgrid td{border:1px solid var(--line);padding:5px 4px;vertical-align:top}
+.wgrid th{background:var(--bg);font-size:10.5px;font-weight:700;text-align:center;color:var(--muted)}
+.wgrid th.daybtn{cursor:pointer;color:var(--ink)}
+.wgrid th.daybtn:active{background:var(--line)}
+.wgrid th .dn{display:block;font-size:13px;font-weight:800;color:var(--ink);margin-top:1px}
+.wgrid th.today{background:color-mix(in srgb, var(--accent) 28%, var(--bg))}
+.wgrid .name{position:sticky;left:0;background:var(--surface);font-weight:800;font-size:11px;min-width:52px;z-index:1}
+.wgrid .cell{min-width:56px;max-width:72px}
+.wgrid .chip{display:block;background:var(--accent);color:var(--accent-ink);border-radius:5px;
+  padding:2px 4px;font-size:10px;font-weight:700;margin-bottom:3px;line-height:1.3}
+.wgrid .chip.adj{background:color-mix(in srgb, var(--blue) 35%, var(--accent))}
+.wgrid .foot td{background:var(--bg);font-weight:700;font-size:10.5px;text-align:center}
+.week-sum{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;color:var(--muted)}
+.week-sum b{color:var(--ink);font-size:14px}
+
+/* inbox */
+.inbox-head{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;user-select:none}
+.inbox-head h2{margin:0}
+.badge{display:inline-block;background:var(--risk);color:#fff;border-radius:999px;font-size:10px;font-weight:800;
+  padding:1px 7px;margin-left:6px;vertical-align:middle}
+.inbox-body{margin-top:10px}
+.inbox-item{display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.inbox-item:last-child{border-bottom:0}
+.inbox-item .who{font-weight:800;min-width:5.2em}
+.inbox-item .when{flex:1;color:var(--muted)}
+.inbox-item button{border:0;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-reflect{background:var(--lgreen);color:#fff}
+.btn-ok{background:var(--line);color:var(--ink)}
+
+.addform{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.addform select{border:1px solid var(--line);border-radius:8px;padding:7px 6px;background:var(--surface);font-family:inherit;font-size:13px}
+.addform .go{border:0;background:var(--lgreen);color:#fff;border-radius:8px;padding:8px 16px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
+.foot{text-align:center;font-size:10px;color:#9AA3AF;margin-top:8px}
+code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:11px;word-break:break-all;user-select:all;margin-top:8px}
+
+/* gantt */
+.gwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -4px;padding:0 4px}
+.gantt{min-width:max-content}
+.g-hc,.g-head,.g-row{display:flex;align-items:stretch}
+.g-label{width:var(--namew);flex:0 0 var(--namew);font-size:11px;font-weight:800;display:flex;align-items:center;padding-right:4px;color:var(--ink)}
+.g-track{position:relative;height:36px;border-bottom:1px solid var(--line);background:
+  repeating-linear-gradient(90deg,var(--bg) 0,var(--bg) calc(var(--slot) - 1px),var(--line) calc(var(--slot) - 1px),var(--line) var(--slot))}
+.g-head .g-track{height:22px;background:transparent;border-bottom:1px solid var(--line)}
+.g-slotlab{position:absolute;top:0;font-size:9px;color:var(--muted);transform:translateX(-50%);white-space:nowrap}
+.g-hc .g-track{height:18px;display:flex}
+.g-hc-cell{flex:0 0 var(--slot);height:100%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#fff}
+.g-hc-cell.ok{background:var(--blue)}
+.g-hc-cell.zero{background:var(--risk)}
+.g-block{position:absolute;top:4px;bottom:4px;border-radius:6px;background:var(--accent);color:var(--accent-ink);
+  font-size:10px;font-weight:700;padding:0 6px 0 8px;display:flex;align-items:center;overflow:hidden;
+  box-shadow:0 1px 2px rgba(0,0,0,.08);cursor:grab;user-select:none;touch-action:none;z-index:2}
+.g-block.adj{background:color-mix(in srgb, var(--blue) 35%, var(--accent))}
+.g-block.sel{outline:2px solid var(--blue);outline-offset:1px}
+.g-block .g-txt{pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
+.g-block .g-rz{position:absolute;right:0;top:0;bottom:0;width:14px;cursor:ew-resize;
+  background:linear-gradient(90deg,transparent,rgba(0,0,0,.12));border-radius:0 6px 6px 0}
+.g-row.drop{outline:2px solid var(--blue);outline-offset:-2px;background:color-mix(in srgb, var(--blue) 8%, transparent)}
+.day-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.day-actions button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;font-family:inherit}
+.day-actions .del{color:var(--risk)}
+.sel-info{font-size:12px;color:var(--muted);margin-top:8px;min-height:1.4em}
+.backlink{border:0;background:none;color:var(--blue);font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;padding:0;margin:0 0 8px}
+.g-block.dirty{box-shadow:0 0 0 2px var(--blue)}
+.savebar{
+  position:sticky;bottom:0;z-index:20;margin:12px -4px 0;padding:10px 12px;
+  background:color-mix(in srgb, var(--blue) 12%, var(--surface));border:1px solid var(--blue);
+  border-radius:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center
+}
+.savebar .txt{flex:1;font-size:12.5px;font-weight:700;color:var(--ink);min-width:8em}
+.savebar button{border:0;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit}
+.savebar .save{background:var(--lgreen);color:#fff}
+.savebar .discard{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+
+/* admin login */
+.login-card{max-width:400px;margin:12vh auto 0}
+.login-card input{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:10px 12px;
+  font-size:14px;font-family:inherit;background:var(--surface);color:var(--ink)}
+.login-card .row{display:flex;gap:8px;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="banner" id="banner"></div>
+  <div class="card" id="appHead" style="display:none">
+    <div class="head">
+      <h1>管理コンソール</h1>
+      <div class="mnav">
+        <button type="button" onclick="moveMonth(-1)">◀</button>
+        <span class="mon" id="monLabel"></span>
+        <button type="button" onclick="moveMonth(1)">▶</button>
+        <button type="button" class="iconbtn" onclick="logout()">ログアウト</button>
+      </div>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="sum-cards" id="summary"></div>
+    <div class="modes" id="modes"></div>
+    <div class="tools" id="tools"></div>
+  </div>
+  <div id="content"><p class="msg">読み込み中…</p></div>
+  <div class="foot">admin v1.0</div>
+</div>
+<script>
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxeXoT_E22dAyb_rz7hH0Q0_JeJqqhNJyV-VfGtvDpVjVZlEtUH4wxKUY8i64H66VFT/exec';
+const SLOT_PX = 28;
+const ADMIN_KEY_STORAGE = 'chargeAdminKey';
+
+let userId = 'ADMIN';
+let D = null;
+let cur = { y: 0, m: 0 };
+let storeId = null;
+let selDate = null;
+let selShiftId = null;
+let viewMode = 'month'; // month | week | day
+let weekIdx = 0;
+let inboxOpen = null; // null = auto
+let drag = null;
+/** 未保存の変更: shiftId -> { start, end, staffId }（ドラッグは即APIせずここに溜める） */
+let pending = {};
+
+function api(payload){
+  payload.adminKey = localStorage.getItem(ADMIN_KEY_STORAGE) || '';
+  return fetch(GAS_API_URL, { method:'POST', body: JSON.stringify(payload) })
+    .then(function(r){ return r.text().then(function(t){ return { status: r.status, text: t }; }); })
+    .then(function(res){
+      var j;
+      try { j = JSON.parse(res.text); }
+      catch (e) {
+        var m = res.text.match(/max-width:600px">([^<]+)/);
+        var hint = m ? m[1].replace(/\s+/g, ' ').trim() : '';
+        throw new Error(hint || ('サーバー応答が不正です (HTTP ' + res.status + ')。GASのデプロイとスプレッドシート列を確認してください。'));
+      }
+      if(!j.ok) throw new Error(j.error || 'サーバーエラー');
+      return j.data;
+    });
+}
+function setMsg(t, isErr){
+  document.getElementById('content').innerHTML = '<div class="card"><p class="msg' + (isErr ? ' err' : '') + '">' + t + '</p></div>';
+}
+function hLabel(h){ return Math.floor(h) + ':' + (h % 1 ? '30' : '00'); }
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function snapHalf(h){ return Math.round(h * 2) / 2; }
+function yen(n){ return '¥' + Math.round(n).toLocaleString(); }
+
+function boot(){
+  const now = new Date();
+  cur.y = now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear();
+  cur.m = now.getMonth() === 11 ? 1 : now.getMonth() + 2;
+  if(localStorage.getItem(ADMIN_KEY_STORAGE)) load();
+  else showLogin('');
+}
+
+function showLogin(err){
+  document.getElementById('appHead').style.display = 'none';
+  document.getElementById('content').innerHTML =
+    '<div class="card login-card">' +
+    '<h1 style="margin-bottom:4px">CHARGE 管理コンソール</h1>' +
+    '<p class="hint" style="margin:0 0 4px">オーナー・店長用の管理キーを入力してください。この端末に保存され、次回から自動でログインします。</p>' +
+    (err ? '<p class="msg err" style="text-align:left;margin:8px 0 0">' + esc(err) + '</p>' : '') +
+    '<div class="row">' +
+    '<input type="password" id="keyInput" placeholder="管理キー" autocomplete="current-password">' +
+    '<button type="button" class="toolbtn primary" onclick="doLogin()">ログイン</button></div></div>';
+  const inp = document.getElementById('keyInput');
+  inp.addEventListener('keydown', function(ev){ if(ev.key === 'Enter') doLogin(); });
+  inp.focus();
+}
+function doLogin(){
+  const v = document.getElementById('keyInput').value.trim();
+  if(!v) return;
+  localStorage.setItem(ADMIN_KEY_STORAGE, v);
+  load();
+}
+function logout(){
+  if(dirtyCount() && !confirm('未保存の変更が ' + dirtyCount() + ' 件あります。破棄してログアウトしますか？')) return;
+  localStorage.removeItem(ADMIN_KEY_STORAGE);
+  pending = {};
+  showLogin('');
+}
+
+function dirtyCount(){ return Object.keys(pending).length; }
+
+/** @returns {'ok'|'reload'|'cancel'} */
+function leaveDirtyPolicy(){
+  if(!dirtyCount()) return 'ok';
+  if(!confirm('未保存の変更が ' + dirtyCount() + ' 件あります。破棄して移動しますか？')) return 'cancel';
+  pending = {};
+  return 'reload'; // ローカル改変を捨ててサーバーから取り直す
+}
+
+function applyLocalShift(id, patch){
+  const s = D.shifts.find(x => x.id === id);
+  if(!s) return;
+  if(patch.start != null) s.start = patch.start;
+  if(patch.end != null) s.end = patch.end;
+  if(patch.staffId != null) s.staffId = patch.staffId;
+  if(!pending[id]) pending[id] = { start: s.start, end: s.end, staffId: s.staffId };
+  pending[id].start = s.start;
+  pending[id].end = s.end;
+  pending[id].staffId = s.staffId;
+  // 見た目用：調整済み寄りに
+  if(!s.changed || s.changed === '希望通り') s.changed = '調整済み';
+}
+
+function discardPending(){
+  if(!dirtyCount()) return;
+  if(!confirm('未保存の変更 ' + dirtyCount() + ' 件を破棄しますか？')) return;
+  pending = {};
+  load();
+}
+
+function savePending(){
+  const ids = Object.keys(pending);
+  if(!ids.length){ alert('保存する変更はありません'); return; }
+  if(!confirm(ids.length + ' 件の変更をまとめて保存します。よろしいですか？')) return;
+  setMsg('保存中…（' + ids.length + '件）');
+  let chain = Promise.resolve();
+  ids.forEach(function(id){
+    const p = pending[id];
+    chain = chain.then(function(){
+      return api({
+        action: 'updateShift',
+        userId: userId,
+        shiftId: id,
+        start: p.start,
+        end: p.end,
+        staffId: p.staffId
+      });
+    });
+  });
+  chain
+    .then(function(){
+      pending = {};
+      return load();
+    })
+    .catch(function(e){
+      alert('保存エラー: ' + e.message + '\n成功した分はそのままのことがあります。画面を再読み込みして確認してください。');
+      load();
+    });
+}
+
+function load(){
+  document.getElementById('appHead').style.display = '';
+  setMsg('データを読み込み中…');
+  api({ action:'boardData', userId: userId, year: cur.y, month: cur.m })
+    .then(function(d){
+      if(d.noPermission){
+        pending = {};
+        document.getElementById('content').innerHTML =
+          '<div class="card"><h2>管理者権限が未登録です</h2>' +
+          '<p style="font-size:12.5px">スプレッドシートの「⑥権限マスタ」シートに、管理者用の行を登録してください（列: LINEユーザーID=<b>ADMIN</b> / 氏名=管理者 / 店舗ID / 権限レベル=編集可）。店舗ごとに1行ずつ。</p>' +
+          '<code class="uid">' + esc(d.userId) + '</code>' +
+          '<p style="font-size:12.5px;color:var(--muted)">登録したらこのページを開き直してください。</p>' +
+          '</div>';
+        document.getElementById('tools').innerHTML = '';
+        document.getElementById('summary').innerHTML = '';
+        document.getElementById('modes').innerHTML = '';
+        return;
+      }
+      D = d;
+      pending = {}; // サーバー最新に同期（未保存分は破棄）
+      if(!storeId || !D.stores.some(s => s.id === storeId)) storeId = D.stores.length ? D.stores[0].id : null;
+      const weeks = getWeeksOfMonth();
+      if(weekIdx >= weeks.length) weekIdx = Math.max(0, weeks.length - 1);
+      render();
+    })
+    .catch(function(e){
+      if(String(e.message).indexOf('管理キー') >= 0){
+        localStorage.removeItem(ADMIN_KEY_STORAGE);
+        showLogin(e.message);
+        return;
+      }
+      setMsg('読み込みエラー: ' + e.message, true);
+    });
+}
+
+function moveMonth(dir){
+  const pol = leaveDirtyPolicy();
+  if(pol === 'cancel') return;
+  cur.m += dir;
+  if(cur.m < 1){ cur.m = 12; cur.y--; }
+  if(cur.m > 12){ cur.m = 1; cur.y++; }
+  selDate = null; selShiftId = null; weekIdx = 0;
+  if(viewMode === 'day') viewMode = 'month';
+  load();
+}
+
+function store(){ return D.stores.find(s => s.id === storeId); }
+function staffOf(id){ return D.staff.find(s => s.id === id) || { name: id, wage: 0 }; }
+function shiftsOn(dateStr){ return D.shifts.filter(s => s.storeId === storeId && s.date === dateStr); }
+function dstr(d){ return cur.y + '-' + String(cur.m).padStart(2,'0') + '-' + String(d).padStart(2,'0'); }
+function storeStaff(){ return D.staff.filter(s => s.storeId === storeId); }
+function daysInMonth(){ return new Date(cur.y, cur.m, 0).getDate(); }
+/** 月曜=0 … 日曜=6 */
+function monDow(y, m, d){ return (new Date(y, m - 1, d).getDay() + 6) % 7; }
+function todayStr(){
+  const n = new Date();
+  return n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
+}
+
+/** 当月の日だけを月曜始まりの週に分割 */
+function getWeeksOfMonth(){
+  const dim = daysInMonth();
+  const weeks = [];
+  let w = { days: [] };
+  for(let d = 1; d <= dim; d++){
+    const dow = monDow(cur.y, cur.m, d);
+    if(d > 1 && dow === 0){
+      weeks.push(w);
+      w = { days: [] };
+    }
+    w.days.push(d);
+  }
+  if(w.days.length) weeks.push(w);
+  weeks.forEach(function(wk, i){
+    wk.index = i;
+    wk.start = wk.days[0];
+    wk.end = wk.days[wk.days.length - 1];
+    wk.label = '第' + (i + 1) + '週';
+    wk.range = cur.m + '/' + wk.start + '〜' + cur.m + '/' + wk.end;
+  });
+  return weeks;
+}
+
+function statsForDays(dayNums){
+  let hours = 0, cost = 0, count = 0;
+  dayNums.forEach(function(d){
+    shiftsOn(dstr(d)).forEach(function(s){
+      count++;
+      const h = s.end - s.start;
+      hours += h;
+      cost += h * (Number(staffOf(s.staffId).wage) || 0);
+    });
+  });
+  return { hours: Math.round(hours * 10) / 10, cost: cost, count: count };
+}
+
+function monthDayList(){
+  const a = [];
+  for(let d = 1; d <= daysInMonth(); d++) a.push(d);
+  return a;
+}
+
+function render(){
+  document.getElementById('monLabel').textContent = cur.y + '年' + cur.m + '月';
+  const tabs = document.getElementById('tabs');
+  tabs.innerHTML = D.stores.map(s =>
+    '<button type="button" class="' + (s.id === storeId ? 'on' : '') + '" onclick="switchStore(\'' + esc(s.id) + '\')">' +
+      esc(s.name) + '<span class="tag">' + (s.editable ? '編集' : '閲覧') + '</span></button>'
+  ).join('');
+  const st = store();
+  const banner = document.getElementById('banner');
+  if(st && !st.editable){ banner.style.display = 'block'; banner.textContent = 'この店舗は閲覧のみです（編集操作はできません）'; }
+  else banner.style.display = 'none';
+
+  const ms = statsForDays(monthDayList());
+  document.getElementById('summary').innerHTML =
+    '<div class="sum-card"><div class="k">今月の確定</div><div class="v">' + ms.count + '<span style="font-size:11px;font-weight:700">件</span></div></div>' +
+    '<div class="sum-card"><div class="k">合計時間</div><div class="v">' + ms.hours + '<span style="font-size:11px;font-weight:700">h</span></div></div>' +
+    '<div class="sum-card"><div class="k">概算人件費</div><div class="v sm">' + yen(ms.cost) + '</div></div>';
+
+  document.getElementById('modes').innerHTML =
+    '<button type="button" class="' + (viewMode === 'month' ? 'on' : '') + '" onclick="setView(\'month\')">月</button>' +
+    '<button type="button" class="' + (viewMode === 'week' ? 'on' : '') + '" onclick="setView(\'week\')">週</button>' +
+    '<button type="button" class="' + (viewMode === 'day' ? 'on' : '') + '" onclick="setView(\'day\')">日</button>';
+
+  const tools = document.getElementById('tools');
+  if(st && st.editable){
+    tools.innerHTML = '<button type="button" class="toolbtn primary" onclick="doCopyPrevMonth()">前月コピー</button>' +
+      '<span class="hint" style="margin:0">前月の確定をこの月へ（同日同人はスキップ）· 週は月曜始まり· 集計は当月の日のみ</span>';
+  } else tools.innerHTML = '';
+
+  let html = renderInbox();
+  if(viewMode === 'month') html += renderWeekSummary() + renderCal();
+  else if(viewMode === 'week') html += renderWeekView();
+  else html += renderDay();
+  document.getElementById('content').innerHTML = html;
+  if(viewMode === 'day' && selDate) bindGantt();
+}
+
+function setView(mode){
+  if(mode === viewMode) return;
+  const pol = leaveDirtyPolicy();
+  if(pol === 'cancel') return;
+  viewMode = mode;
+  if(mode === 'day' && !selDate){
+    const t = todayStr();
+    const prefix = cur.y + '-' + String(cur.m).padStart(2,'0');
+    if(t.indexOf(prefix) === 0) selDate = t;
+    else selDate = dstr(1);
+  }
+  if(mode === 'week'){
+    const t = todayStr();
+    const prefix = cur.y + '-' + String(cur.m).padStart(2,'0');
+    if(t.indexOf(prefix) === 0){
+      const day = Number(t.split('-')[2]);
+      const weeks = getWeeksOfMonth();
+      const idx = weeks.findIndex(w => w.days.indexOf(day) >= 0);
+      if(idx >= 0) weekIdx = idx;
+    }
+  }
+  selShiftId = null;
+  if(pol === 'reload') load();
+  else render();
+}
+
+function switchStore(id){
+  if(id === storeId) return;
+  const pol = leaveDirtyPolicy();
+  if(pol === 'cancel') return;
+  storeId = id; selDate = null; selShiftId = null; weekIdx = 0;
+  if(pol === 'reload') load();
+  else render();
+}
+
+function renderInbox(){
+  const st = store();
+  const list = D.requests.filter(r => r.storeId === storeId && r.status !== '反映済み');
+  const open = inboxOpen === null ? list.length > 0 : inboxOpen;
+  let html = '<div class="card"><div class="inbox-head" onclick="toggleInbox()">' +
+    '<h2>LINE希望 受信箱' + (list.length ? '<span class="badge">' + list.length + '</span>' : '') + '</h2>' +
+    '<span style="font-size:12px;color:var(--muted);font-weight:700">' + (open ? '閉じる ▴' : '開く ▾') + '</span></div>';
+  if(!open) return html + '</div>';
+  html += '<div class="inbox-body">';
+  if(!list.length){ html += '<p class="msg" style="margin:6px 0">未反映の希望はありません</p>'; }
+  list.forEach(function(r){
+    const who = esc(staffOf(r.staffId).name);
+    const dParts = r.date.split('-');
+    const dLabel = Number(dParts[1]) + '/' + Number(dParts[2]);
+    if(r.start === '' || r.start === null){
+      html += '<div class="inbox-item"><span class="who">' + who + '</span><span class="when">' + dLabel + ' 休み希望</span>' +
+        (st.editable ? '<button type="button" class="btn-ok" onclick="ackRequest(\'' + esc(r.id) + '\')">確認済み</button>' : '') + '</div>';
+    } else {
+      html += '<div class="inbox-item"><span class="who">' + who + '</span><span class="when">' + dLabel + ' ' + hLabel(r.start) + '〜' + hLabel(r.end) + '</span>' +
+        (st.editable ? '<button type="button" class="btn-reflect" onclick="reflect(\'' + esc(r.id) + '\')">反映</button>' : '') + '</div>';
+    }
+  });
+  return html + '</div></div>';
+}
+function toggleInbox(){
+  const list = D.requests.filter(r => r.storeId === storeId && r.status !== '反映済み');
+  const open = inboxOpen === null ? list.length > 0 : inboxOpen;
+  inboxOpen = !open;
+  render();
+}
+
+function renderWeekSummary(){
+  const weeks = getWeeksOfMonth();
+  const monthCost = statsForDays(monthDayList()).cost || 1;
+  let html = '<div class="card"><h2>週ごとの確定・人件費 <span style="font-weight:600;color:var(--muted);font-size:11px">月曜始まり · 当月のみ</span></h2>';
+  html += '<p class="hint">行をタップでその週ビューへ。金額は確定シフト×時給の概算です。</p>';
+  html += '<table class="wtable"><thead><tr>' +
+    '<th>週</th><th class="r">確定</th><th class="r">時間</th><th class="r">概算人件費</th></tr></thead><tbody>';
+  weeks.forEach(function(wk){
+    const stt = statsForDays(wk.days);
+    const pct = Math.min(100, Math.round((stt.cost / monthCost) * 100));
+    html += '<tr class="week-row' + (weekIdx === wk.index && viewMode === 'week' ? ' on' : '') +
+      '" onclick="openWeek(' + wk.index + ')">' +
+      '<td><div class="wk">' + esc(wk.label) + '</div><div class="rng">' + esc(wk.range) + '</div></td>' +
+      '<td class="r">' + stt.count + '件</td>' +
+      '<td class="r">' + stt.hours + 'h</td>' +
+      '<td class="r">' + yen(stt.cost) +
+        '<div class="bar"><i style="width:' + pct + '%"></i></div></td></tr>';
+  });
+  const ms = statsForDays(monthDayList());
+  html += '</tbody><tfoot><tr><td>月計</td><td class="r">' + ms.count + '件</td><td class="r">' +
+    ms.hours + 'h</td><td class="r">' + yen(ms.cost) + '</td></tr></tfoot></table></div>';
+  return html;
+}
+
+function openWeek(i){
+  if(viewMode !== 'week' || weekIdx !== i){
+    const pol = leaveDirtyPolicy();
+    if(pol === 'cancel') return;
+    weekIdx = i;
+    viewMode = 'week';
+    selShiftId = null;
+    if(pol === 'reload') load();
+    else render();
+    return;
+  }
+  weekIdx = i;
+  viewMode = 'week';
+  selShiftId = null;
+  render();
+}
+
+function renderCal(){
+  const days = daysInMonth();
+  // 月曜始まり: 1日の monDow が先頭の空白数
+  const lead = monDow(cur.y, cur.m, 1);
+  const today = todayStr();
+  let html = '<div class="card"><h2>' + cur.m + '月カレンダー</h2>';
+  html += '<p class="hint">日付タップで日ガント。週は月曜始まり。</p><div class="cal">';
+  html += ['月','火','水','木','金','土','日'].map(function(w, i){
+    const cls = i === 6 ? 'wd sun' : (i === 5 ? 'wd sat' : 'wd');
+    return '<div class="' + cls + '">' + w + '</div>';
+  }).join('');
+  for(let i = 0; i < lead; i++) html += '<button type="button" class="d blank"></button>';
+  for(let d = 1; d <= days; d++){
+    const ds = dstr(d);
+    const n = shiftsOn(ds).length;
+    const dow = monDow(cur.y, cur.m, d);
+    let numCls = 'num';
+    if(dow === 6) numCls += ' sun';
+    if(dow === 5) numCls += ' sat';
+    html += '<button type="button" class="d' + (selDate === ds ? ' sel' : '') + (ds === today ? ' today' : '') +
+      '" onclick="pickDay(\'' + ds + '\')">' +
+      '<span class="' + numCls + '">' + d + '</span><br>' +
+      (n ? '<span class="cnt">' + n + '人</span>' : '<span class="zero">0人</span>') + '</button>';
+  }
+  return html + '</div></div>';
+}
+
+function pickDay(ds){
+  if(ds !== selDate || viewMode !== 'day'){
+    const pol = leaveDirtyPolicy();
+    if(pol === 'cancel') return;
+    selDate = ds;
+    selShiftId = null;
+    viewMode = 'day';
+    const day = Number(ds.split('-')[2]);
+    const weeks = getWeeksOfMonth();
+    const idx = weeks.findIndex(w => w.days.indexOf(day) >= 0);
+    if(idx >= 0) weekIdx = idx;
+    if(pol === 'reload') load();
+    else render();
+    return;
+  }
+  selDate = ds;
+  selShiftId = null;
+  viewMode = 'day';
+  render();
+}
+
+function moveWeek(dir){
+  const pol = leaveDirtyPolicy();
+  if(pol === 'cancel') return;
+  const weeks = getWeeksOfMonth();
+  weekIdx = Math.max(0, Math.min(weeks.length - 1, weekIdx + dir));
+  if(pol === 'reload') load();
+  else render();
+}
+
+function renderWeekView(){
+  const weeks = getWeeksOfMonth();
+  if(!weeks.length) return '<div class="card"><p class="msg">週がありません</p></div>';
+  const wk = weeks[weekIdx] || weeks[0];
+  weekIdx = wk.index;
+  const stt = statsForDays(wk.days);
+  const today = todayStr();
+  const wnames = ['月','火','水','木','金','土','日'];
+
+  // 7カラム: 当月の日だけ埋める（月またぎの空欄は空白）
+  // 先頭日の monDow から埋める
+  const cols = []; // { day|null, ds|null, label }
+  const lead = monDow(cur.y, cur.m, wk.days[0]);
+  for(let i = 0; i < lead; i++) cols.push({ day: null, ds: null, wd: wnames[i] });
+  wk.days.forEach(function(d){
+    const dow = monDow(cur.y, cur.m, d);
+    cols.push({ day: d, ds: dstr(d), wd: wnames[dow] });
+  });
+  while(cols.length < 7) cols.push({ day: null, ds: null, wd: wnames[cols.length] });
+  // 週の途中終わりの場合は末尾を埋めるが、当月外は null のまま
+
+  const staffRows = storeStaff().slice();
+  // 週内シフトの他店要員も
+  wk.days.forEach(function(d){
+    shiftsOn(dstr(d)).forEach(function(s){
+      if(!staffRows.some(x => x.id === s.staffId)) staffRows.push(staffOf(s.staffId));
+    });
+  });
+
+  let html = '<div class="card">';
+  html += '<div class="week-head"><div class="week-nav">' +
+    '<button type="button" onclick="moveWeek(-1)"' + (weekIdx <= 0 ? ' disabled' : '') + '>◀</button>' +
+    '<span class="ttl">' + esc(wk.label) + '（' + esc(wk.range) + '）</span>' +
+    '<button type="button" onclick="moveWeek(1)"' + (weekIdx >= weeks.length - 1 ? ' disabled' : '') + '>▶</button>' +
+    '</div></div>';
+  html += '<div class="week-sum">' +
+    '<span>確定 <b>' + stt.count + '</b>件</span>' +
+    '<span>時間 <b>' + stt.hours + '</b>h</span>' +
+    '<span>概算人件費 <b>' + yen(stt.cost) + '</b></span></div>';
+  html += '<p class="hint" style="margin-top:10px">日付見出しタップで日ガント。集計は当月の日のみ。</p>';
+
+  html += '<div class="wgrid"><table><thead><tr><th class="name">スタッフ</th>';
+  cols.forEach(function(c){
+    if(c.day == null){
+      html += '<th>' + c.wd + '</th>';
+    } else {
+      const isT = c.ds === today;
+      html += '<th class="daybtn' + (isT ? ' today' : '') + '" onclick="pickDay(\'' + c.ds + '\')">' +
+        c.wd + '<span class="dn">' + c.day + '</span></th>';
+    }
+  });
+  html += '</tr></thead><tbody>';
+
+  if(!staffRows.length){
+    html += '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:16px">スタッフがいません</td></tr>';
+  }
+  staffRows.forEach(function(sf){
+    html += '<tr><td class="name">' + esc(sf.name) + '</td>';
+    cols.forEach(function(c){
+      if(c.day == null){ html += '<td class="cell"></td>'; return; }
+      const list = shiftsOn(c.ds).filter(s => s.staffId === sf.id);
+      html += '<td class="cell">';
+      if(!list.length) html += '<span style="color:var(--muted)">·</span>';
+      list.forEach(function(s){
+        const adj = s.changed === '調整済み' || s.changed === '手動追加' || s.changed === '前月コピー';
+        html += '<span class="chip' + (adj ? ' adj' : '') + '">' + hLabel(s.start) + '–' + hLabel(s.end) + '</span>';
+      });
+      html += '</td>';
+    });
+    html += '</tr>';
+  });
+
+  // 日別人件費・人数
+  html += '<tr class="foot"><td class="name">人数</td>';
+  cols.forEach(function(c){
+    if(c.day == null){ html += '<td></td>'; return; }
+    html += '<td>' + shiftsOn(c.ds).length + '</td>';
+  });
+  html += '</tr><tr class="foot"><td class="name">人件費</td>';
+  cols.forEach(function(c){
+    if(c.day == null){ html += '<td></td>'; return; }
+    const stDay = statsForDays([c.day]);
+    html += '<td style="font-size:10px">' + (stDay.cost ? yen(stDay.cost) : '–') + '</td>';
+  });
+  html += '</tr></tbody></table></div></div>';
+
+  // 人別週内訳
+  html += '<div class="card"><h2>この週の人別（当月）</h2>';
+  let any = false;
+  html += '<table class="wtable"><thead><tr><th>スタッフ</th><th class="r">時間</th><th class="r">概算人件費</th></tr></thead><tbody>';
+  staffRows.forEach(function(sf){
+    let h = 0, c = 0, n = 0;
+    wk.days.forEach(function(d){
+      shiftsOn(dstr(d)).filter(s => s.staffId === sf.id).forEach(function(s){
+        n++; const hh = s.end - s.start; h += hh; c += hh * (Number(sf.wage) || 0);
+      });
+    });
+    if(!n) return;
+    any = true;
+    html += '<tr><td>' + esc(sf.name) + '</td><td class="r">' + (Math.round(h*10)/10) + 'h</td><td class="r">' + yen(c) + '</td></tr>';
+  });
+  if(!any) html += '<tr><td colspan="3" style="color:var(--muted);text-align:center">シフトなし</td></tr>';
+  html += '</tbody></table></div>';
+  return html;
+}
+
+function slotsOf(st){
+  const slots = [];
+  for(let t = st.open; t < st.close; t += 0.5) slots.push(t);
+  return slots;
+}
+
+function renderDay(){
+  if(!selDate){
+    return '<div class="card"><p class="msg">日付が選ばれていません。月または週から日付を選んでください。</p>' +
+      '<button type="button" class="toolbtn" onclick="setView(\'month\')">月ビューへ</button></div>';
+  }
+  const st = store();
+  const list = shiftsOn(selDate);
+  const dParts = selDate.split('-');
+  const slots = slotsOf(st);
+  const trackW = slots.length * SLOT_PX;
+  const staffRows = storeStaff().slice();
+  list.forEach(function(s){
+    if(!staffRows.some(x => x.id === s.staffId)) staffRows.push(staffOf(s.staffId));
+  });
+  const dayStat = statsForDays([Number(dParts[2])]);
+
+  const counts = slots.map(function(t){
+    return list.filter(s => s.start <= t && s.end > t).length;
+  });
+
+  let html = '<div class="card">';
+  html += '<button type="button" class="backlink" onclick="setView(\'week\')">← 週ビューに戻る</button>';
+  html += '<h2>' + Number(dParts[1]) + '月' + Number(dParts[2]) + '日 ガント（' + esc(st.name) + '）</h2>';
+  html += '<div class="week-sum" style="margin:0 0 10px">' +
+    '<span>確定 <b>' + dayStat.count + '</b>件</span>' +
+    '<span>時間 <b>' + dayStat.hours + '</b>h</span>' +
+    '<span>人件費 <b>' + yen(dayStat.cost) + '</b></span></div>';
+  html += '<p class="hint">右端＝終了時刻／上下＝担当変更。操作はすぐ反映せず<strong>下書き</strong>になります。終わったら「変更を保存」。</p>';
+  html += '<div class="gwrap"><div class="gantt" id="gantt" style="--slot:' + SLOT_PX + 'px">';
+
+  html += '<div class="g-head"><div class="g-label"></div><div class="g-track" style="width:' + trackW + 'px;min-width:' + trackW + 'px">';
+  slots.forEach(function(t, i){
+    if(t % 1 === 0) html += '<span class="g-slotlab" style="left:' + (i * SLOT_PX) + 'px">' + Math.floor(t) + '</span>';
+  });
+  html += '</div></div>';
+
+  html += '<div class="g-hc"><div class="g-label">人数</div><div class="g-track" style="width:' + trackW + 'px;min-width:' + trackW + 'px;display:flex">';
+  counts.forEach(function(n){
+    html += '<div class="g-hc-cell ' + (n ? 'ok' : 'zero') + '">' + n + '</div>';
+  });
+  html += '</div></div>';
+
+  staffRows.forEach(function(sf){
+    html += '<div class="g-row" data-staff-id="' + esc(sf.id) + '"><div class="g-label">' + esc(sf.name) + '</div>';
+    html += '<div class="g-track" style="width:' + trackW + 'px;min-width:' + trackW + 'px" data-staff-id="' + esc(sf.id) + '">';
+    list.filter(s => s.staffId === sf.id).forEach(function(s){
+      const left = (s.start - st.open) * 2 * SLOT_PX;
+      const width = Math.max((s.end - s.start) * 2 * SLOT_PX, SLOT_PX);
+      const adj = s.changed === '調整済み' || s.changed === '手動追加' || s.changed === '前月コピー';
+      const isDirty = !!pending[s.id];
+      html += '<div class="g-block' + (adj ? ' adj' : '') + (selShiftId === s.id ? ' sel' : '') + (isDirty ? ' dirty' : '') +
+        '" data-id="' + esc(s.id) + '" style="left:' + left + 'px;width:' + width + 'px">' +
+        '<span class="g-txt">' + hLabel(s.start) + '〜' + hLabel(s.end) + (isDirty ? ' ·' : '') + '</span>' +
+        (st.editable ? '<span class="g-rz" data-rz="1"></span>' : '') +
+        '</div>';
+    });
+    html += '</div></div>';
+  });
+
+  html += '</div></div>';
+
+  if(st.editable){
+    html += '<div class="day-actions">' +
+      '<button type="button" onclick="editSelectedShift()">時間を数値入力</button>' +
+      '<button type="button" class="del" onclick="removeSelectedShift()">選択を削除</button></div>';
+    html += '<div class="sel-info" id="selInfo">' + (selShiftId ? '選択中' : 'ブロックをタップして選択') + '</div>';
+    if(dirtyCount()){
+      html += '<div class="savebar">' +
+        '<div class="txt">未保存 ' + dirtyCount() + ' 件（まだサーバーに送っていません）</div>' +
+        '<button type="button" class="discard" onclick="discardPending()">破棄</button>' +
+        '<button type="button" class="save" onclick="savePending()">変更を保存</button></div>';
+    }
+    html += '<div class="addform">' +
+      '<select id="addStaff">' + storeStaff().map(s => '<option value="' + esc(s.id) + '">' + esc(s.name) + '</option>').join('') + '</select>' +
+      '<select id="addStart">' + timeOpts(st.open, st.close - 0.5, st.open) + '</select><span>〜</span>' +
+      '<select id="addEnd">' + timeOpts(st.open + 0.5, st.close, st.close) + '</select>' +
+      '<button type="button" class="go" onclick="manualAdd()">追加</button></div>';
+  }
+  return html + '</div>';
+}
+
+function timeOpts(open, close, sel){
+  let s = '';
+  for(let t = open; t <= close + 1e-9; t = Math.round((t + 0.5) * 2) / 2)
+    s += '<option value="' + t + '"' + (t === sel ? ' selected' : '') + '>' + hLabel(t) + '</option>';
+  return s;
+}
+
+let ganttWinBound = false;
+function bindGantt(){
+  const st = store();
+  if(!st || !st.editable) return;
+  const root = document.getElementById('gantt');
+  if(!root) return;
+  root.querySelectorAll('.g-block').forEach(function(el){
+    el.addEventListener('pointerdown', onBlockDown);
+  });
+  if(!ganttWinBound){
+    ganttWinBound = true;
+    window.addEventListener('pointermove', onDragMove);
+    window.addEventListener('pointerup', onDragUp);
+    window.addEventListener('pointercancel', onDragUp);
+  }
+}
+
+function onBlockDown(e){
+  const st = store();
+  if(!st || !st.editable) return;
+  const block = e.currentTarget;
+  const id = block.getAttribute('data-id');
+  const s = D.shifts.find(x => x.id === id);
+  if(!s) return;
+  selShiftId = id;
+  const info = document.getElementById('selInfo');
+  if(info) info.textContent = '選択中: ' + staffOf(s.staffId).name + ' ' + hLabel(s.start) + '〜' + hLabel(s.end);
+
+  const isRz = e.target && e.target.getAttribute('data-rz') === '1';
+  drag = {
+    mode: isRz ? 'resize' : 'move',
+    id: id,
+    startX: e.clientX,
+    startY: e.clientY,
+    startH: s.start,
+    endH: s.end,
+    staffId: s.staffId,
+    moved: false,
+    block: block
+  };
+  try { block.setPointerCapture(e.pointerId); } catch(_){}
+  e.preventDefault();
+}
+
+function onDragMove(e){
+  if(!drag) return;
+  const st = store();
+  const dx = e.clientX - drag.startX;
+  const dy = e.clientY - drag.startY;
+  if(Math.abs(dx) + Math.abs(dy) > 4) drag.moved = true;
+
+  if(drag.mode === 'resize'){
+    const dSlots = Math.round(dx / SLOT_PX);
+    let newEnd = snapHalf(drag.endH + dSlots * 0.5);
+    if(newEnd <= drag.startH) newEnd = drag.startH + 0.5;
+    if(newEnd > st.close) newEnd = st.close;
+    const left = (drag.startH - st.open) * 2 * SLOT_PX;
+    const width = Math.max((newEnd - drag.startH) * 2 * SLOT_PX, SLOT_PX);
+    drag.block.style.left = left + 'px';
+    drag.block.style.width = width + 'px';
+    drag.block.querySelector('.g-txt').textContent = hLabel(drag.startH) + '〜' + hLabel(newEnd);
+    drag.previewEnd = newEnd;
+  } else {
+    document.querySelectorAll('.g-row').forEach(r => r.classList.remove('drop'));
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const row = el && el.closest ? el.closest('.g-row') : null;
+    if(row) row.classList.add('drop');
+    drag.previewStaff = row ? row.getAttribute('data-staff-id') : null;
+  }
+}
+
+function onDragUp(e){
+  if(!drag) return;
+  const d = drag;
+  drag = null;
+  document.querySelectorAll('.g-row').forEach(r => r.classList.remove('drop'));
+
+  if(!d.moved){
+    const info = document.getElementById('selInfo');
+    const s = D.shifts.find(x => x.id === d.id);
+    if(info && s) info.textContent = '選択中: ' + staffOf(s.staffId).name + ' ' + hLabel(s.start) + '〜' + hLabel(s.end);
+    return;
+  }
+
+  // 即APIせずローカル下書きに反映（まとめて「変更を保存」）
+  if(d.mode === 'resize' && d.previewEnd != null && d.previewEnd !== d.endH){
+    applyLocalShift(d.id, { start: d.startH, end: d.previewEnd });
+    render();
+    return;
+  }
+  if(d.mode === 'move' && d.previewStaff && d.previewStaff !== d.staffId){
+    applyLocalShift(d.id, { start: d.startH, end: d.endH, staffId: d.previewStaff });
+    render();
+  }
+}
+
+function doCopyPrevMonth(){
+  const st = store();
+  if(!st || !st.editable) return;
+  const pol = leaveDirtyPolicy();
+  if(pol === 'cancel') return;
+  if(!confirm(cur.y + '年' + cur.m + '月へ、前月の確定シフトをコピーします。\n同じ人・同じ日が既にある場合はスキップします。\n実行しますか？')) return;
+  setMsg('前月コピー中…');
+  api({ action:'copyPrevMonth', userId: userId, storeId: storeId, year: cur.y, month: cur.m })
+    .then(function(r){
+      alert('コピー完了\n元: ' + r.fromYear + '年' + r.fromMonth + '月（' + r.sourceCount + '件）\n複製: ' + r.copied + '件 / スキップ: ' + r.skipped + '件');
+      load();
+    })
+    .catch(function(e){ alert('エラー: ' + e.message); load(); });
+}
+
+function reflect(reqId){
+  const r = D.requests.find(x => x.id === reqId);
+  if(!r) return;
+  setMsg('反映中…');
+  api({ action:'addShift', userId: userId, shift: { staffId: r.staffId, storeId: r.storeId, date: r.date, start: r.start, end: r.end, fromRequestId: r.id } })
+    .then(load).catch(function(e){ alert('エラー: ' + e.message); load(); });
+}
+function ackRequest(reqId){
+  setMsg('更新中…');
+  api({ action:'markRequest', userId: userId, requestId: reqId, status: '反映済み' })
+    .then(load).catch(function(e){ alert('エラー: ' + e.message); load(); });
+}
+function manualAdd(){
+  const staffSel = document.getElementById('addStaff').value;
+  const s = parseFloat(document.getElementById('addStart').value);
+  const en = parseFloat(document.getElementById('addEnd').value);
+  if(en <= s){ alert('終了時刻は開始より後にしてください'); return; }
+  setMsg('追加中…');
+  api({ action:'addShift', userId: userId, shift: { staffId: staffSel, storeId: storeId, date: selDate, start: s, end: en } })
+    .then(load).catch(function(e){ alert('エラー: ' + e.message); load(); });
+}
+function editSelectedShift(){
+  if(!selShiftId){ alert('先にガントのブロックをタップして選択してください'); return; }
+  editShift(selShiftId);
+}
+function removeSelectedShift(){
+  if(!selShiftId){ alert('先にガントのブロックをタップして選択してください'); return; }
+  removeShift(selShiftId);
+}
+function editShift(id){
+  const s = D.shifts.find(x => x.id === id);
+  const st = store();
+  const ns = prompt('開始時刻（例 11 または 11.5 = 11:30）', s.start);
+  if(ns === null) return;
+  const ne = prompt('終了時刻（例 20 または 17.5 = 17:30）', s.end);
+  if(ne === null) return;
+  const a = parseFloat(ns), b = parseFloat(ne);
+  if(isNaN(a) || isNaN(b) || b <= a || a < st.open || b > st.close){ alert('時刻が正しくありません（営業時間 ' + hLabel(st.open) + '〜' + hLabel(st.close) + '）'); return; }
+  applyLocalShift(id, { start: a, end: b });
+  render();
+}
+function removeShift(id){
+  if(pending[id]){
+    // 未保存の変更だけならローカルから外すのは危険なので削除は即サーバー
+  }
+  if(dirtyCount() && !confirm('未保存の変更があります。削除はすぐサーバーに反映されます。続行しますか？')) return;
+  if(!confirm('このシフトを削除しますか？（希望から反映したものは受信箱に戻ります）')) return;
+  setMsg('削除中…');
+  selShiftId = null;
+  delete pending[id];
+  api({ action:'deleteShift', userId: userId, shiftId: id })
+    .then(load).catch(function(e){ alert('エラー: ' + e.message); load(); });
+}
+
+boot();
+</script>
+</body>
+</html>
