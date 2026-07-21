@@ -30,6 +30,7 @@ body{margin:0;padding:16px;padding-bottom:28px;background:var(--bg);color:var(--
 h1{font-size:16px;margin:0 0 4px}
 .sub{font-size:12px;color:var(--muted);margin:0 0 12px}
 .hint{font-size:11px;color:var(--muted);margin:0 0 10px;line-height:1.5}
+.sec{font-size:12px;font-weight:700;margin:14px 0 8px;color:var(--ink)}
 .test-banner{background:color-mix(in srgb, var(--accent) 20%, var(--surface));border:1px solid var(--accent);
   border-radius:8px;padding:6px 10px;font-size:11px;margin-bottom:12px;display:none}
 .linklist button{
@@ -37,7 +38,6 @@ h1{font-size:16px;margin:0 0 4px}
   color:var(--ink);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer
 }
 
-/* quick chips */
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
 .chip{
   border:1px solid var(--line);background:var(--chip);color:var(--ink);
@@ -46,7 +46,31 @@ h1{font-size:16px;margin:0 0 4px}
 .chip:active{transform:scale(0.98)}
 .chip.danger{color:var(--risk);border-color:color-mix(in srgb, var(--risk) 35%, var(--line))}
 
-/* calendar */
+/* pattern card */
+.pat-card{
+  background:var(--bg);border:1px solid var(--line);border-radius:14px;
+  padding:12px;margin:0 0 12px
+}
+.pat-row{
+  display:grid;grid-template-columns:22px 40px 1fr auto 1fr;gap:6px;align-items:center;
+  margin-bottom:8px
+}
+.pat-row:last-of-type{margin-bottom:0}
+.pat-row label.name{font-size:12.5px;font-weight:700}
+.pat-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--lgreen)}
+.pat-row select{
+  width:100%;border:1px solid var(--line);border-radius:8px;padding:6px 2px;
+  background:var(--surface);font-family:inherit;font-size:12.5px
+}
+.pat-row .tilde{color:var(--muted);font-size:12px;text-align:center}
+.pat-actions{display:flex;gap:8px;margin-top:10px}
+.pat-actions button{
+  flex:1;border:0;border-radius:10px;padding:11px 8px;font-size:13px;font-weight:700;
+  font-family:inherit;cursor:pointer
+}
+.pat-actions .primary{background:var(--ink);color:#fff}
+.pat-actions .ghost{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:8px}
 .cal .wd{font-size:10px;text-align:center;color:var(--muted);font-weight:600;padding-bottom:2px}
 .cal .wd.sun{color:var(--risk)}
@@ -69,22 +93,7 @@ h1{font-size:16px;margin:0 0 4px}
 .summary strong{font-size:14px}
 .summary .list{margin-top:6px;color:var(--muted);line-height:1.55;word-break:break-all}
 
-/* time rows for work mode */
-.bulk{
-  display:flex;flex-wrap:wrap;gap:6px;align-items:center;
-  background:var(--bg);border:1px solid var(--line);border-radius:12px;
-  padding:10px;margin:0 0 12px
-}
-.bulk label{font-size:11px;color:var(--muted);font-weight:600}
-.bulk select{
-  border:1px solid var(--line);border-radius:8px;padding:6px 4px;
-  background:var(--surface);font-family:inherit;font-size:13px
-}
-.bulk .apply{
-  margin-left:auto;border:0;border-radius:8px;padding:7px 10px;
-  background:var(--ink);color:#fff;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer
-}
-.rows{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;max-height:280px;overflow:auto}
+.rows{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;max-height:240px;overflow:auto}
 .row{
   display:grid;grid-template-columns:56px 1fr auto 1fr 28px;gap:6px;align-items:center;
   background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:8px 10px
@@ -112,7 +121,7 @@ textarea{
 <div class="phone" id="app">
   <div class="test-banner" id="testBanner">テストモードです</div>
   <div id="content"><p class="msg">読み込み中…</p></div>
-  <div class="foot">web v2</div>
+  <div class="foot">web v2.1</div>
 </div>
 <script>
 const LIFF_ID = '2010649060-f8YllUzm';
@@ -121,12 +130,16 @@ const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxeXoT_E22dAyb_rz7h
 let myProfile = null;
 let staffInfo = null;
 let ctx = null;
-/** 休み希望: Set<number> 日 */
+/** 休み希望: Set<number> */
 let offDays = new Set();
 /** 出勤可能: { [day:number]: {start:number, end:number} } */
 let workByDay = {};
-let bulkStart = null;
-let bulkEnd = null;
+/** パターンUIの記憶（再描画後も維持） */
+let pat = {
+  wdOn: true, weOn: true,
+  wdStart: null, wdEnd: null,
+  weStart: null, weEnd: null
+};
 
 function api(payload){
   return fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify(payload) })
@@ -153,9 +166,7 @@ function monthLabel(){ return ctx.year + '年' + ctx.month + '月'; }
 function dateStr(day){ return ctx.year + '-' + pad2(ctx.month) + '-' + pad2(day); }
 function dowOf(day){ return (ctx.firstDow + day - 1) % 7; }
 function isWeekend(day){ const d = dowOf(day); return d === 0 || d === 6; }
-function fmtTime(t){
-  return Math.floor(t) + ':' + (t % 1 ? '30' : '00');
-}
+function fmtTime(t){ return Math.floor(t) + ':' + (t % 1 ? '30' : '00'); }
 function sortedDays(objOrSet){
   if(objOrSet instanceof Set) return Array.from(objOrSet).sort(function(a,b){ return a-b; });
   return Object.keys(objOrSet).map(Number).sort(function(a,b){ return a-b; });
@@ -163,6 +174,13 @@ function sortedDays(objOrSet){
 function dayChipLabel(day){
   const w = ['日','月','火','水','木','金','土'][dowOf(day)];
   return day + '日(' + w + ')';
+}
+function normalizeRange(s, e){
+  s = parseFloat(s); e = parseFloat(e);
+  if(isNaN(s)) s = ctx.store.open;
+  if(isNaN(e)) e = ctx.store.close;
+  if(e <= s) e = Math.min(s + 1, ctx.store.close);
+  return { start: s, end: e };
 }
 
 function boot(){
@@ -247,8 +265,12 @@ function loadForm(){
       ctx = c;
       offDays = new Set();
       workByDay = {};
-      bulkStart = ctx.store.open;
-      bulkEnd = ctx.store.close;
+      pat.wdStart = ctx.store.open;
+      pat.wdEnd = ctx.store.close;
+      pat.weStart = ctx.store.open;
+      pat.weEnd = ctx.store.close;
+      pat.wdOn = true;
+      pat.weOn = true;
       renderForm();
     })
     .catch(function(err){ showError('フォーム情報取得', err); });
@@ -258,14 +280,12 @@ function timeOpts(open, close, sel){
   let s = '';
   for(let t = open; t <= close + 1e-9; t += 0.5){
     const v = Math.round(t * 2) / 2;
-    const label = fmtTime(v);
-    s += '<option value="' + v + '"' + (v === sel ? ' selected' : '') + '>' + label + '</option>';
+    s += '<option value="' + v + '"' + (v === sel ? ' selected' : '') + '>' + fmtTime(v) + '</option>';
   }
   return s;
 }
 
 function buildCalHtml(mode){
-  // mode: 'off' | 'work'
   const wds = ['日','月','火','水','木','金','土'];
   let cal = wds.map(function(w, i){
     const cls = i === 0 ? 'wd sun' : (i === 6 ? 'wd sat' : 'wd');
@@ -286,9 +306,9 @@ function buildCalHtml(mode){
 
 function quickChipsHtml(mode){
   return '<div class="chips">' +
-    '<button type="button" class="chip" onclick="selectWeekdays(\'' + mode + '\')">平日すべて</button>' +
-    '<button type="button" class="chip" onclick="selectWeekends(\'' + mode + '\')">土日すべて</button>' +
-    '<button type="button" class="chip" onclick="selectAll(\'' + mode + '\')">月すべて</button>' +
+    '<button type="button" class="chip" onclick="selectWeekdays(\'' + mode + '\')">平日を追加</button>' +
+    '<button type="button" class="chip" onclick="selectWeekends(\'' + mode + '\')">土日を追加</button>' +
+    '<button type="button" class="chip" onclick="selectAll(\'' + mode + '\')">月すべて追加</button>' +
     '<button type="button" class="chip danger" onclick="clearDays(\'' + mode + '\')">クリア</button>' +
     '</div>';
 }
@@ -307,8 +327,6 @@ function renderForm(){
     renderOffForm();
     return;
   }
-
-  // 出勤可能日時（デフォルト）
   renderWorkForm();
 }
 
@@ -323,7 +341,7 @@ function renderOffForm(){
   c.innerHTML =
     '<h1>' + esc(staffInfo.name) + 'さん</h1>' +
     '<p class="sub">' + monthLabel() + 'の<strong>休みたい日</strong>をタップ</p>' +
-    '<p class="hint">まとめて選ぶボタンもあります。もう一度タップすると解除されます。</p>' +
+    '<p class="hint">まとめて選ぶボタンもあります。もう一度タップすると解除。最後に1回だけ提出します。</p>' +
     quickChipsHtml('off') +
     buildCalHtml('off') +
     '<div class="summary"><strong>休み希望：' + days.length + '日</strong>' +
@@ -333,6 +351,54 @@ function renderOffForm(){
 }
 
 /* ========== 出勤可能日時 ========== */
+function savePatFromDom(){
+  const wdOn = document.getElementById('patWdOn');
+  const weOn = document.getElementById('patWeOn');
+  const wdS = document.getElementById('patWdStart');
+  const wdE = document.getElementById('patWdEnd');
+  const weS = document.getElementById('patWeStart');
+  const weE = document.getElementById('patWeEnd');
+  if(wdOn) pat.wdOn = wdOn.checked;
+  if(weOn) pat.weOn = weOn.checked;
+  if(wdS && wdE){
+    const r = normalizeRange(wdS.value, wdE.value);
+    pat.wdStart = r.start; pat.wdEnd = r.end;
+  }
+  if(weS && weE){
+    const r = normalizeRange(weS.value, weE.value);
+    pat.weStart = r.start; pat.weEnd = r.end;
+  }
+}
+
+function patternCardHtml(){
+  const wdS = pat.wdStart != null ? pat.wdStart : ctx.store.open;
+  const wdE = pat.wdEnd != null ? pat.wdEnd : ctx.store.close;
+  const weS = pat.weStart != null ? pat.weStart : ctx.store.open;
+  const weE = pat.weEnd != null ? pat.weEnd : ctx.store.close;
+  return '' +
+    '<div class="pat-card">' +
+      '<p class="hint" style="margin:0 0 10px">平日と土日で時間が違っても、<strong>ここで一度に入れて</strong>、最後に1回提出できます。</p>' +
+      '<div class="pat-row">' +
+        '<input type="checkbox" id="patWdOn"' + (pat.wdOn ? ' checked' : '') + '>' +
+        '<label class="name" for="patWdOn">平日</label>' +
+        '<select id="patWdStart">' + timeOpts(ctx.store.open, ctx.store.close - 0.5, wdS) + '</select>' +
+        '<span class="tilde">〜</span>' +
+        '<select id="patWdEnd">' + timeOpts(ctx.store.open + 0.5, ctx.store.close, wdE) + '</select>' +
+      '</div>' +
+      '<div class="pat-row">' +
+        '<input type="checkbox" id="patWeOn"' + (pat.weOn ? ' checked' : '') + '>' +
+        '<label class="name" for="patWeOn">土日</label>' +
+        '<select id="patWeStart">' + timeOpts(ctx.store.open, ctx.store.close - 0.5, weS) + '</select>' +
+        '<span class="tilde">〜</span>' +
+        '<select id="patWeEnd">' + timeOpts(ctx.store.open + 0.5, ctx.store.close, weE) + '</select>' +
+      '</div>' +
+      '<div class="pat-actions">' +
+        '<button type="button" class="primary" onclick="applyPatternsOnce()">まとめて反映（平日＋土日）</button>' +
+        '<button type="button" class="ghost" onclick="clearDays(\'work\')">クリア</button>' +
+      '</div>' +
+    '</div>';
+}
+
 function renderWorkForm(){
   const c = document.getElementById('content');
   const days = sortedDays(workByDay);
@@ -341,43 +407,64 @@ function renderWorkForm(){
         const t = workByDay[d];
         return dayChipLabel(d) + ' ' + fmtTime(t.start) + '〜' + fmtTime(t.end);
       }).join(' ／ ')
-    : 'カレンダーから出勤できる日をタップしてください';
+    : '上の「まとめて反映」か、カレンダーをタップしてください';
 
   let rowsHtml = '';
   if(days.length){
-    rowsHtml = '<div class="rows" id="rowsEl">' + days.map(function(d){
-      const t = workByDay[d];
-      return '<div class="row">' +
-        '<div class="date-label">' + dayChipLabel(d) + '</div>' +
-        '<select onchange="updateWorkTime(' + d + ',\'start\',this.value)">' +
-          timeOpts(ctx.store.open, ctx.store.close - 0.5, t.start) + '</select>' +
-        '<span class="tilde">〜</span>' +
-        '<select onchange="updateWorkTime(' + d + ',\'end\',this.value)">' +
-          timeOpts(ctx.store.open + 0.5, ctx.store.close, t.end) + '</select>' +
-        '<button type="button" class="del" onclick="removeWorkDay(' + d + ')" aria-label="削除">✕</button>' +
-        '</div>';
-    }).join('') + '</div>';
+    rowsHtml =
+      '<div class="sec">個別に直す（任意）</div>' +
+      '<div class="rows">' + days.map(function(d){
+        const t = workByDay[d];
+        return '<div class="row">' +
+          '<div class="date-label">' + dayChipLabel(d) + '</div>' +
+          '<select onchange="updateWorkTime(' + d + ',\'start\',this.value)">' +
+            timeOpts(ctx.store.open, ctx.store.close - 0.5, t.start) + '</select>' +
+          '<span class="tilde">〜</span>' +
+          '<select onchange="updateWorkTime(' + d + ',\'end\',this.value)">' +
+            timeOpts(ctx.store.open + 0.5, ctx.store.close, t.end) + '</select>' +
+          '<button type="button" class="del" onclick="removeWorkDay(' + d + ')" aria-label="削除">✕</button>' +
+          '</div>';
+      }).join('') + '</div>';
   }
 
   c.innerHTML =
     '<h1>' + esc(staffInfo.name) + 'さん</h1>' +
-    '<p class="sub">' + monthLabel() + 'の<strong>出勤できる日</strong>をタップ</p>' +
-    '<p class="hint">日付を選んだあと、下で時間を調整できます。「時間を一括適用」でまとめて変更もできます。</p>' +
+    '<p class="sub">' + monthLabel() + 'の<strong>出勤できる日時</strong></p>' +
+    '<div class="sec">① パターンでまとめて入れる</div>' +
+    patternCardHtml() +
+    '<div class="sec">② カレンダーで微調整</div>' +
+    '<p class="hint">黄色＝出勤希望。タップで追加／解除。例外の日だけここで直します。</p>' +
     quickChipsHtml('work') +
     buildCalHtml('work') +
-    '<div class="summary"><strong>出勤希望：' + days.length + '日</strong>' +
+    '<div class="summary"><strong>提出予定：' + days.length + '日</strong>' +
       '<div class="list">' + esc(summaryList) + '</div></div>' +
-    (days.length ? (
-      '<div class="bulk">' +
-        '<label>一括</label>' +
-        '<select id="bulkStart">' + timeOpts(ctx.store.open, ctx.store.close - 0.5, bulkStart) + '</select>' +
-        '<span class="tilde">〜</span>' +
-        '<select id="bulkEnd">' + timeOpts(ctx.store.open + 0.5, ctx.store.close, bulkEnd) + '</select>' +
-        '<button type="button" class="apply" onclick="applyBulkTime()">時間を一括適用</button>' +
-      '</div>' + rowsHtml
-    ) : '') +
+    rowsHtml +
     '<button type="button" class="submit" ' + (days.length ? '' : 'disabled ') +
-      'onclick="submitWork()">この内容で提出する（' + days.length + '日）</button>';
+      'onclick="submitWork()">③ この内容でまとめて提出（' + days.length + '日）</button>';
+}
+
+/** 平日・土日パターンを一度に workByDay へ反映（既存は上書き、未チェック側は触らない） */
+function applyPatternsOnce(){
+  savePatFromDom();
+  if(!pat.wdOn && !pat.weOn){
+    alert('平日か土日の、どちらか（または両方）にチェックを入れてください。');
+    return;
+  }
+  let n = 0;
+  for(let d = 1; d <= ctx.daysInMonth; d++){
+    if(pat.wdOn && !isWeekend(d)){
+      workByDay[d] = { start: pat.wdStart, end: pat.wdEnd };
+      n++;
+    }
+    if(pat.weOn && isWeekend(d)){
+      workByDay[d] = { start: pat.weStart, end: pat.weEnd };
+      n++;
+    }
+  }
+  renderWorkForm();
+  // 軽いフィードバック
+  const el = document.querySelector('.summary strong');
+  if(el) el.textContent = '提出予定：' + sortedDays(workByDay).length + '日（いま ' + n + ' 日を反映）';
 }
 
 function toggleDay(d){
@@ -386,10 +473,16 @@ function toggleDay(d){
     renderOffForm();
     return;
   }
+  savePatFromDom();
   if(workByDay[d]){
     delete workByDay[d];
   } else {
-    workByDay[d] = { start: ctx.store.open, end: ctx.store.close };
+    // 追加時は曜日パターンの時間を優先
+    if(isWeekend(d)){
+      workByDay[d] = { start: pat.weStart != null ? pat.weStart : ctx.store.open, end: pat.weEnd != null ? pat.weEnd : ctx.store.close };
+    } else {
+      workByDay[d] = { start: pat.wdStart != null ? pat.wdStart : ctx.store.open, end: pat.wdEnd != null ? pat.wdEnd : ctx.store.close };
+    }
   }
   renderWorkForm();
 }
@@ -404,14 +497,18 @@ function selectBy(mode, pred){
       if(pred(d)) offDays.add(d);
     }
     renderOffForm();
-  } else {
-    for(let d = 1; d <= ctx.daysInMonth; d++){
-      if(pred(d) && !workByDay[d]){
-        workByDay[d] = { start: bulkStart != null ? bulkStart : ctx.store.open, end: bulkEnd != null ? bulkEnd : ctx.store.close };
-      }
-    }
-    renderWorkForm();
+    return;
   }
+  savePatFromDom();
+  for(let d = 1; d <= ctx.daysInMonth; d++){
+    if(!pred(d)) continue;
+    if(isWeekend(d)){
+      workByDay[d] = { start: pat.weStart != null ? pat.weStart : ctx.store.open, end: pat.weEnd != null ? pat.weEnd : ctx.store.close };
+    } else {
+      workByDay[d] = { start: pat.wdStart != null ? pat.wdStart : ctx.store.open, end: pat.wdEnd != null ? pat.wdEnd : ctx.store.close };
+    }
+  }
+  renderWorkForm();
 }
 
 function clearDays(mode){
@@ -419,6 +516,7 @@ function clearDays(mode){
     offDays = new Set();
     renderOffForm();
   } else {
+    savePatFromDom();
     workByDay = {};
     renderWorkForm();
   }
@@ -426,6 +524,7 @@ function clearDays(mode){
 
 function updateWorkTime(day, field, val){
   if(!workByDay[day]) return;
+  savePatFromDom();
   workByDay[day][field] = parseFloat(val);
   if(workByDay[day].end <= workByDay[day].start){
     workByDay[day].end = Math.min(workByDay[day].start + 1, ctx.store.close);
@@ -434,22 +533,8 @@ function updateWorkTime(day, field, val){
 }
 
 function removeWorkDay(day){
+  savePatFromDom();
   delete workByDay[day];
-  renderWorkForm();
-}
-
-function applyBulkTime(){
-  const sEl = document.getElementById('bulkStart');
-  const eEl = document.getElementById('bulkEnd');
-  if(!sEl || !eEl) return;
-  let s = parseFloat(sEl.value);
-  let e = parseFloat(eEl.value);
-  if(e <= s) e = Math.min(s + 1, ctx.store.close);
-  bulkStart = s;
-  bulkEnd = e;
-  Object.keys(workByDay).forEach(function(k){
-    workByDay[k] = { start: s, end: e };
-  });
   renderWorkForm();
 }
 
@@ -463,9 +548,7 @@ function submitOff(){
   setStatus('送信中…');
   api({ action: 'submitDaysOff', staffId: staffInfo.id, storeId: staffInfo.storeId, dates: dates, note: note })
     .then(function(){
-      const detail = list.length
-        ? list.map(dayChipLabel).join('、')
-        : '休み希望なし';
+      const detail = list.length ? list.map(dayChipLabel).join('、') : '休み希望なし';
       showSuccess(
         list.length ? list.length + '日分の休み希望を提出しました。' : '休み希望なしで提出しました。',
         detail
@@ -477,7 +560,7 @@ function submitOff(){
 function submitWork(){
   const days = sortedDays(workByDay);
   if(!days.length){
-    alert('出勤できる日を1日以上選んでください。');
+    alert('出勤できる日を1日以上入れてください。\n「まとめて反映」かカレンダーで選べます。');
     return;
   }
   const rows = days.map(function(d){
@@ -486,12 +569,12 @@ function submitWork(){
   const preview = days.map(function(d){
     return dayChipLabel(d) + ' ' + fmtTime(workByDay[d].start) + '〜' + fmtTime(workByDay[d].end);
   }).join('\n');
-  if(!confirm(monthLabel() + 'の出勤希望 ' + days.length + '日分を提出します。\n\n' + preview)) return;
+  if(!confirm(monthLabel() + 'の出勤希望 ' + days.length + '日分を【1回で】提出します。\n\n' + preview)) return;
 
   setStatus('送信中…');
   api({ action: 'submitRequests', staffId: staffInfo.id, storeId: staffInfo.storeId, rows: rows })
     .then(function(){
-      showSuccess(days.length + '日分の出勤希望を提出しました。', preview.replace(/\n/g, ' ／ '));
+      showSuccess(days.length + '日分の出勤希望をまとめて提出しました。', preview.replace(/\n/g, ' ／ '));
     })
     .catch(function(err){ showError('提出', err); });
 }
