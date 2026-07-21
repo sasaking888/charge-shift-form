@@ -371,27 +371,23 @@ function todayStr(){
   return n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
 }
 
-/** 当月の日だけを月曜始まりの週に分割 */
+/** 月の1日を第1週の初日。1–7 / 8–14 / 15–21 / 22–28 / 29–月末 */
 function getWeeksOfMonth(){
   const dim = daysInMonth();
   const weeks = [];
-  let w = { days: [] };
-  for(let d = 1; d <= dim; d++){
-    const dow = monDow(cur.y, cur.m, d);
-    if(d > 1 && dow === 0){
-      weeks.push(w);
-      w = { days: [] };
-    }
-    w.days.push(d);
+  for(let start = 1; start <= dim; start += 7){
+    const end = Math.min(start + 6, dim);
+    const days = [];
+    for(let d = start; d <= end; d++) days.push(d);
+    weeks.push({
+      days: days,
+      index: weeks.length,
+      start: start,
+      end: end,
+      label: '第' + (weeks.length + 1) + '週',
+      range: cur.m + '/' + start + '〜' + cur.m + '/' + end
+    });
   }
-  if(w.days.length) weeks.push(w);
-  weeks.forEach(function(wk, i){
-    wk.index = i;
-    wk.start = wk.days[0];
-    wk.end = wk.days[wk.days.length - 1];
-    wk.label = '第' + (i + 1) + '週';
-    wk.range = cur.m + '/' + wk.start + '〜' + cur.m + '/' + wk.end;
-  });
   return weeks;
 }
 
@@ -440,7 +436,7 @@ function render(){
   const tools = document.getElementById('tools');
   if(st && st.editable){
     tools.innerHTML = '<button type="button" class="toolbtn primary" onclick="doCopyPrevMonth()">前月コピー</button>' +
-      '<span class="hint" style="margin:0">前月の確定をこの月へ（同日同人はスキップ）· 週は月曜始まり· 集計は当月の日のみ</span>';
+      '<span class="hint" style="margin:0">前月の確定をこの月へ（同日同人はスキップ）· 週は月1日始まり· 集計は当月の日のみ</span>';
   } else tools.innerHTML = '';
 
   let html = renderInbox();
@@ -520,7 +516,7 @@ function toggleInbox(){
 function renderWeekSummary(){
   const weeks = getWeeksOfMonth();
   const monthCost = statsForDays(monthDayList()).cost || 1;
-  let html = '<div class="card"><h2>週ごとの確定・人件費 <span style="font-weight:600;color:var(--muted);font-size:11px">月曜始まり · 当月のみ</span></h2>';
+  let html = '<div class="card"><h2>週ごとの確定・人件費 <span style="font-weight:600;color:var(--muted);font-size:11px">月1日始まり（1–7が第1週）</span></h2>';
   html += '<p class="hint">行をタップでその週ビューへ。金額は確定シフト×時給の概算です。</p>';
   html += '<table class="wtable"><thead><tr>' +
     '<th>週</th><th class="r">確定</th><th class="r">時間</th><th class="r">概算人件費</th></tr></thead><tbody>';
@@ -564,7 +560,7 @@ function renderCal(){
   const lead = monDow(cur.y, cur.m, 1);
   const today = todayStr();
   let html = '<div class="card"><h2>' + cur.m + '月カレンダー</h2>';
-  html += '<p class="hint">日付タップで日ガント。週は月曜始まり。</p><div class="cal">';
+  html += '<p class="hint">日付タップで日ガント。週は月1日始まり。</p><div class="cal">';
   html += ['月','火','水','木','金','土','日'].map(function(w, i){
     const cls = i === 6 ? 'wd sun' : (i === 5 ? 'wd sat' : 'wd');
     return '<div class="' + cls + '">' + w + '</div>';

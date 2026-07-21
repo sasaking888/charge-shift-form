@@ -211,8 +211,8 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
   <div class="topnav" id="topnav" style="display:none">
     <div class="links">
       <a href="top.html">← 管理TOP</a>
-      <a href="admin.html?v=1.4" class="on">シフト管理</a>
-      <a href="cost.html">週次人件費</a>
+      <a href="admin.html?v=1.5" class="on">シフト管理</a>
+      <a href="cost.html?v=1.1">週次人件費</a>
     </div>
     <div class="links">
       <span class="crumb">編集・配置用</span>
@@ -235,7 +235,7 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
     <div class="tools" id="tools"></div>
   </div>
   <div id="content"><p class="msg">読み込み中…</p></div>
-  <div class="foot">shift-admin v1.4</div>
+  <div class="foot">shift-admin v1.5</div>
 </div>
 <script>
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxeXoT_E22dAyb_rz7hH0Q0_JeJqqhNJyV-VfGtvDpVjVZlEtUH4wxKUY8i64H66VFT/exec';
@@ -458,27 +458,23 @@ function todayStr(){
   return n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
 }
 
-/** 当月の日だけを月曜始まりの週に分割 */
+/** 月の1日を第1週の初日。1–7 / 8–14 / 15–21 / 22–28 / 29–月末 */
 function getWeeksOfMonth(){
   const dim = daysInMonth();
   const weeks = [];
-  let w = { days: [] };
-  for(let d = 1; d <= dim; d++){
-    const dow = monDow(cur.y, cur.m, d);
-    if(d > 1 && dow === 0){
-      weeks.push(w);
-      w = { days: [] };
-    }
-    w.days.push(d);
+  for(let start = 1; start <= dim; start += 7){
+    const end = Math.min(start + 6, dim);
+    const days = [];
+    for(let d = start; d <= end; d++) days.push(d);
+    weeks.push({
+      days: days,
+      index: weeks.length,
+      start: start,
+      end: end,
+      label: '第' + (weeks.length + 1) + '週',
+      range: cur.m + '/' + start + '〜' + cur.m + '/' + end
+    });
   }
-  if(w.days.length) weeks.push(w);
-  weeks.forEach(function(wk, i){
-    wk.index = i;
-    wk.start = wk.days[0];
-    wk.end = wk.days[wk.days.length - 1];
-    wk.label = '第' + (i + 1) + '週';
-    wk.range = cur.m + '/' + wk.start + '〜' + cur.m + '/' + wk.end;
-  });
   return weeks;
 }
 
@@ -609,7 +605,7 @@ function toggleInbox(){
 function renderWeekSummary(){
   const weeks = getWeeksOfMonth();
   const monthCost = statsForDays(monthDayList()).cost || 1;
-  let html = '<div class="card"><h2>週ごとの確定・人件費 <span style="font-weight:600;color:var(--muted);font-size:11px">月曜始まり · 当月のみ</span></h2>';
+  let html = '<div class="card"><h2>週ごとの確定・人件費 <span style="font-weight:600;color:var(--muted);font-size:11px">月1日始まり（1–7が第1週）</span></h2>';
   html += '<p class="hint">行をタップでその週ビューへ。金額は確定シフト×時給の概算です。</p>';
   html += '<table class="wtable"><thead><tr>' +
     '<th>週</th><th class="r">確定</th><th class="r">時間</th><th class="r">概算人件費</th></tr></thead><tbody>';
@@ -653,7 +649,7 @@ function renderCal(){
   const lead = monDow(cur.y, cur.m, 1);
   const today = todayStr();
   let html = '<div class="card"><h2>' + cur.m + '月カレンダー</h2>';
-  html += '<p class="hint">日付タップで日ガント。週は月曜始まり。</p><div class="cal">';
+  html += '<p class="hint">日付タップで日ガント。週次集計は月1日始まり（1–7が第1週）。</p><div class="cal">';
   html += ['月','火','水','木','金','土','日'].map(function(w, i){
     const cls = i === 6 ? 'wd sun' : (i === 5 ? 'wd sat' : 'wd');
     return '<div class="' + cls + '">' + w + '</div>';
@@ -711,22 +707,15 @@ function renderWeekView(){
   weekIdx = wk.index;
   const stt = statsForDays(wk.days);
   const today = todayStr();
-  const wnames = ['月','火','水','木','金','土','日'];
+  const wnames = ['日','月','火','水','木','金','土'];
 
-  // 7カラム: 当月の日だけ埋める（月またぎの空欄は空白）
-  // 先頭日の monDow から埋める
-  const cols = []; // { day|null, ds|null, label }
-  const lead = monDow(cur.y, cur.m, wk.days[0]);
-  for(let i = 0; i < lead; i++) cols.push({ day: null, ds: null, wd: wnames[i] });
-  wk.days.forEach(function(d){
-    const dow = monDow(cur.y, cur.m, d);
-    cols.push({ day: d, ds: dstr(d), wd: wnames[dow] });
+  // 月1日始まりの週: その週に含まれる日付だけを列にする（1–7, 8–14…）
+  const cols = wk.days.map(function(d){
+    const jsDow = new Date(cur.y, cur.m - 1, d).getDay();
+    return { day: d, ds: dstr(d), wd: wnames[jsDow] };
   });
-  while(cols.length < 7) cols.push({ day: null, ds: null, wd: wnames[cols.length] });
-  // 週の途中終わりの場合は末尾を埋めるが、当月外は null のまま
 
   const staffRows = storeStaff().slice();
-  // 週内シフトの他店要員も
   wk.days.forEach(function(d){
     shiftsOn(dstr(d)).forEach(function(s){
       if(!staffRows.some(x => x.id === s.staffId)) staffRows.push(staffOf(s.staffId));
@@ -743,27 +732,22 @@ function renderWeekView(){
     '<span>確定 <b>' + stt.count + '</b>件</span>' +
     '<span>時間 <b>' + stt.hours + '</b>h</span>' +
     '<span>概算人件費 <b>' + yen(stt.cost) + '</b></span></div>';
-  html += '<p class="hint" style="margin-top:10px">日付見出しタップで日ガント。集計は当月の日のみ。</p>';
+  html += '<p class="hint" style="margin-top:10px">月の1日始まり（第1週=1–7日）。日付タップで日ガント。</p>';
 
   html += '<div class="wgrid"><table><thead><tr><th class="name">スタッフ</th>';
   cols.forEach(function(c){
-    if(c.day == null){
-      html += '<th>' + c.wd + '</th>';
-    } else {
-      const isT = c.ds === today;
-      html += '<th class="daybtn' + (isT ? ' today' : '') + '" onclick="pickDay(\'' + c.ds + '\')">' +
-        c.wd + '<span class="dn">' + c.day + '</span></th>';
-    }
+    const isT = c.ds === today;
+    html += '<th class="daybtn' + (isT ? ' today' : '') + '" onclick="pickDay(\'' + c.ds + '\')">' +
+      c.wd + '<span class="dn">' + c.day + '</span></th>';
   });
   html += '</tr></thead><tbody>';
 
   if(!staffRows.length){
-    html += '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:16px">スタッフがいません</td></tr>';
+    html += '<tr><td colspan="' + (cols.length + 1) + '" style="text-align:center;color:var(--muted);padding:16px">スタッフがいません</td></tr>';
   }
   staffRows.forEach(function(sf){
     html += '<tr><td class="name">' + esc(sf.name) + '</td>';
     cols.forEach(function(c){
-      if(c.day == null){ html += '<td class="cell"></td>'; return; }
       const list = shiftsOn(c.ds).filter(s => s.staffId === sf.id);
       html += '<td class="cell">';
       if(!list.length) html += '<span style="color:var(--muted)">·</span>';
@@ -776,15 +760,12 @@ function renderWeekView(){
     html += '</tr>';
   });
 
-  // 日別人件費・人数
   html += '<tr class="foot"><td class="name">人数</td>';
   cols.forEach(function(c){
-    if(c.day == null){ html += '<td></td>'; return; }
     html += '<td>' + shiftsOn(c.ds).length + '</td>';
   });
   html += '</tr><tr class="foot"><td class="name">人件費</td>';
   cols.forEach(function(c){
-    if(c.day == null){ html += '<td></td>'; return; }
     const stDay = statsForDays([c.day]);
     html += '<td style="font-size:10px">' + (stDay.cost ? yen(stDay.cost) : '–') + '</td>';
   });
