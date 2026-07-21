@@ -2,7 +2,9 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <title>CHARGE シフト希望提出</title>
 <script>
 window.onerror = function(msg, src, line, col){
@@ -19,41 +21,98 @@ window.onerror = function(msg, src, line, col){
 :root{
   --bg:#F5F7FA; --surface:#FFFFFF; --ink:#1C2433; --muted:#6B7686;
   --line:#E4E9F0; --accent:#FFC400; --accent-ink:#3A2E00; --lgreen:#06C755; --risk:#D45B6A;
+  --chip:#EEF2F7;
 }
 *{box-sizing:border-box}
-body{margin:0;padding:16px;background:var(--bg);color:var(--ink);
+body{margin:0;padding:16px;padding-bottom:28px;background:var(--bg);color:var(--ink);
   font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;font-size:14px;line-height:1.6}
-.phone{max-width:430px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+.phone{max-width:430px;margin:0 auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px 20px}
 h1{font-size:16px;margin:0 0 4px}
-.sub{font-size:12px;color:var(--muted);margin:0 0 14px}
+.sub{font-size:12px;color:var(--muted);margin:0 0 12px}
+.hint{font-size:11px;color:var(--muted);margin:0 0 10px;line-height:1.5}
 .test-banner{background:color-mix(in srgb, var(--accent) 20%, var(--surface));border:1px solid var(--accent);
   border-radius:8px;padding:6px 10px;font-size:11px;margin-bottom:12px;display:none}
 .linklist button{
   display:block;width:100%;text-align:left;border:1px solid var(--line);background:var(--bg);
   color:var(--ink);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer
 }
-.rows{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
-.row{display:flex;gap:6px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
-.row input[type=date]{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--surface);font-family:inherit;font-size:13px}
-.row select{border:1px solid var(--line);border-radius:8px;padding:6px 4px;background:var(--surface);font-family:inherit;font-size:13px}
-.row .del{border:0;background:transparent;color:var(--muted);font-size:15px}
-.add-row{width:100%;border:1.5px dashed var(--line);background:transparent;color:var(--muted);border-radius:12px;padding:9px 0;font-size:13px;font-weight:600;margin-bottom:16px;font-family:inherit;cursor:pointer}
-.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:6px}
-.cal .wd{font-size:10px;text-align:center;color:var(--muted);font-weight:600}
-.day{aspect-ratio:1;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--ink);font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer}
-.day.blank{visibility:hidden}
-.day.on{background:var(--risk);border-color:var(--risk);color:#fff}
-textarea{width:100%;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font-family:inherit;font-size:13px;padding:8px 10px;resize:vertical;min-height:52px;margin-bottom:16px}
-.submit{width:100%;border:0;border-radius:12px;padding:13px 0;background:var(--lgreen);color:#fff;font-size:14.5px;font-weight:700;font-family:inherit;cursor:pointer}
+
+/* quick chips */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
+.chip{
+  border:1px solid var(--line);background:var(--chip);color:var(--ink);
+  border-radius:999px;padding:6px 11px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer
+}
+.chip:active{transform:scale(0.98)}
+.chip.danger{color:var(--risk);border-color:color-mix(in srgb, var(--risk) 35%, var(--line))}
+
+/* calendar */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:8px}
+.cal .wd{font-size:10px;text-align:center;color:var(--muted);font-weight:600;padding-bottom:2px}
+.cal .wd.sun{color:var(--risk)}
+.cal .wd.sat{color:#3B82F6}
+.day{
+  aspect-ratio:1;border:1px solid var(--line);border-radius:9px;background:var(--surface);
+  color:var(--ink);font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;padding:0
+}
+.day.blank{visibility:hidden;pointer-events:none}
+.day.sun{color:var(--risk)}
+.day.sat{color:#3B82F6}
+.day.on-off{background:var(--risk);border-color:var(--risk);color:#fff}
+.day.on-work{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+.summary{
+  background:var(--bg);border:1px solid var(--line);border-radius:12px;
+  padding:10px 12px;margin:0 0 12px;font-size:12.5px
+}
+.summary strong{font-size:14px}
+.summary .list{margin-top:6px;color:var(--muted);line-height:1.55;word-break:break-all}
+
+/* time rows for work mode */
+.bulk{
+  display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+  background:var(--bg);border:1px solid var(--line);border-radius:12px;
+  padding:10px;margin:0 0 12px
+}
+.bulk label{font-size:11px;color:var(--muted);font-weight:600}
+.bulk select{
+  border:1px solid var(--line);border-radius:8px;padding:6px 4px;
+  background:var(--surface);font-family:inherit;font-size:13px
+}
+.bulk .apply{
+  margin-left:auto;border:0;border-radius:8px;padding:7px 10px;
+  background:var(--ink);color:#fff;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer
+}
+.rows{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;max-height:280px;overflow:auto}
+.row{
+  display:grid;grid-template-columns:56px 1fr auto 1fr 28px;gap:6px;align-items:center;
+  background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:8px 10px
+}
+.row .date-label{font-size:12px;font-weight:700;white-space:nowrap}
+.row select{width:100%;border:1px solid var(--line);border-radius:8px;padding:6px 2px;background:var(--surface);font-family:inherit;font-size:12.5px}
+.row .del{border:0;background:transparent;color:var(--muted);font-size:15px;cursor:pointer;padding:0}
+.row .tilde{color:var(--muted);font-size:12px}
+
+textarea{
+  width:100%;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);
+  font-family:inherit;font-size:13px;padding:8px 10px;resize:vertical;min-height:52px;margin-bottom:12px
+}
+.submit{
+  width:100%;border:0;border-radius:12px;padding:13px 0;background:var(--lgreen);color:#fff;
+  font-size:14.5px;font-weight:700;font-family:inherit;cursor:pointer
+}
+.submit:disabled{opacity:.45;cursor:not-allowed}
 .success .big{font-size:40px;color:var(--lgreen);text-align:center}
 .msg{font-size:13px;color:var(--muted);text-align:center;margin:20px 0}
+.foot{text-align:center;font-size:10px;color:#9AA3AF;margin-top:10px}
 </style>
 </head>
 <body>
 <div class="phone" id="app">
   <div class="test-banner" id="testBanner">テストモードです</div>
   <div id="content"><p class="msg">読み込み中…</p></div>
-  <div style="text-align:center;font-size:10px;color:#9AA3AF;margin-top:10px">web v1</div>
+  <div class="foot">web v2</div>
 </div>
 <script>
 const LIFF_ID = '2010649060-f8YllUzm';
@@ -62,8 +121,12 @@ const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxeXoT_E22dAyb_rz7h
 let myProfile = null;
 let staffInfo = null;
 let ctx = null;
-let rows = [];
+/** 休み希望: Set<number> 日 */
 let offDays = new Set();
+/** 出勤可能: { [day:number]: {start:number, end:number} } */
+let workByDay = {};
+let bulkStart = null;
+let bulkEnd = null;
 
 function api(payload){
   return fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify(payload) })
@@ -81,6 +144,25 @@ function showError(label, err){
   const msg = (err && err.message) ? err.message : String(err);
   document.getElementById('content').innerHTML =
     '<p class="msg" style="color:var(--risk)">エラー（' + label + '）<br>' + msg + '</p>';
+}
+function esc(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function pad2(n){ return String(n).padStart(2,'0'); }
+function monthLabel(){ return ctx.year + '年' + ctx.month + '月'; }
+function dateStr(day){ return ctx.year + '-' + pad2(ctx.month) + '-' + pad2(day); }
+function dowOf(day){ return (ctx.firstDow + day - 1) % 7; }
+function isWeekend(day){ const d = dowOf(day); return d === 0 || d === 6; }
+function fmtTime(t){
+  return Math.floor(t) + ':' + (t % 1 ? '30' : '00');
+}
+function sortedDays(objOrSet){
+  if(objOrSet instanceof Set) return Array.from(objOrSet).sort(function(a,b){ return a-b; });
+  return Object.keys(objOrSet).map(Number).sort(function(a,b){ return a-b; });
+}
+function dayChipLabel(day){
+  const w = ['日','月','火','水','木','金','土'][dowOf(day)];
+  return day + '日(' + w + ')';
 }
 
 function boot(){
@@ -140,7 +222,7 @@ function showLinkScreen(){
       }
       let html = '<h1>はじめまして！</h1><p class="sub">下の一覧からご自身のお名前をタップしてください（初回だけです）</p><div class="linklist">';
       list.forEach(function(s){
-        html += '<button onclick="doLink(' + s.row + ')">' + s.name + '（' + s.storeName + '）</button>';
+        html += '<button type="button" onclick="doLink(' + s.row + ')">' + esc(s.name) + '（' + esc(s.storeName) + '）</button>';
       });
       html += '</div>';
       c.innerHTML = html;
@@ -163,6 +245,10 @@ function loadForm(){
   api({ action: 'context', storeId: staffInfo.storeId })
     .then(function(c){
       ctx = c;
+      offDays = new Set();
+      workByDay = {};
+      bulkStart = ctx.store.open;
+      bulkEnd = ctx.store.close;
       renderForm();
     })
     .catch(function(err){ showError('フォーム情報取得', err); });
@@ -170,108 +256,252 @@ function loadForm(){
 
 function timeOpts(open, close, sel){
   let s = '';
-  for(let t = open; t <= close; t += 0.5){
-    const label = Math.floor(t) + ':' + (t % 1 ? '30' : '00');
-    s += '<option value="' + t + '"' + (t === sel ? ' selected' : '') + '>' + label + '</option>';
+  for(let t = open; t <= close + 1e-9; t += 0.5){
+    const v = Math.round(t * 2) / 2;
+    const label = fmtTime(v);
+    s += '<option value="' + v + '"' + (v === sel ? ' selected' : '') + '>' + label + '</option>';
   }
   return s;
 }
 
+function buildCalHtml(mode){
+  // mode: 'off' | 'work'
+  const wds = ['日','月','火','水','木','金','土'];
+  let cal = wds.map(function(w, i){
+    const cls = i === 0 ? 'wd sun' : (i === 6 ? 'wd sat' : 'wd');
+    return '<div class="' + cls + '">' + w + '</div>';
+  }).join('');
+  for(let i = 0; i < ctx.firstDow; i++) cal += '<button type="button" class="day blank" tabindex="-1"></button>';
+  for(let d = 1; d <= ctx.daysInMonth; d++){
+    const dow = dowOf(d);
+    let cls = 'day';
+    if(dow === 0) cls += ' sun';
+    if(dow === 6) cls += ' sat';
+    const on = (mode === 'off') ? offDays.has(d) : !!workByDay[d];
+    if(on) cls += (mode === 'off' ? ' on-off' : ' on-work');
+    cal += '<button type="button" class="' + cls + '" data-d="' + d + '" onclick="toggleDay(' + d + ')">' + d + '</button>';
+  }
+  return '<div class="cal">' + cal + '</div>';
+}
+
+function quickChipsHtml(mode){
+  return '<div class="chips">' +
+    '<button type="button" class="chip" onclick="selectWeekdays(\'' + mode + '\')">平日すべて</button>' +
+    '<button type="button" class="chip" onclick="selectWeekends(\'' + mode + '\')">土日すべて</button>' +
+    '<button type="button" class="chip" onclick="selectAll(\'' + mode + '\')">月すべて</button>' +
+    '<button type="button" class="chip danger" onclick="clearDays(\'' + mode + '\')">クリア</button>' +
+    '</div>';
+}
+
 function renderForm(){
   const c = document.getElementById('content');
-  const monthLabel = ctx.year + '年' + ctx.month + '月';
+  const fixed = String(staffInfo.fixed).toUpperCase() === 'TRUE';
 
-  if(staffInfo.fixed === 'TRUE'){
-    c.innerHTML = '<h1>' + staffInfo.name + 'さん</h1>' +
-      '<p class="sub">固定勤務のため、' + monthLabel + '分の提出は不要です🎉<br>変更したい日がある場合はオーナーに直接ご連絡ください。</p>';
+  if(fixed){
+    c.innerHTML = '<h1>' + esc(staffInfo.name) + 'さん</h1>' +
+      '<p class="sub">固定勤務のため、' + monthLabel() + '分の提出は不要です🎉<br>変更したい日がある場合はオーナーに直接ご連絡ください。</p>';
     return;
   }
 
   if(staffInfo.mode === '休み希望のみ'){
-    rows = [];
-    let cal = ['日','月','火','水','木','金','土'].map(function(w){ return '<div class="wd">' + w + '</div>'; }).join('');
-    for(let i = 0; i < ctx.firstDow; i++) cal += '<button class="day blank"></button>';
-    for(let d = 1; d <= ctx.daysInMonth; d++) cal += '<button class="day" data-d="' + d + '" onclick="toggleDay(' + d + ')">' + d + '</button>';
-    c.innerHTML = '<h1>' + staffInfo.name + 'さん</h1>' +
-      '<p class="sub">' + monthLabel + '、休みたい日をタップしてください</p>' +
-      '<div class="cal">' + cal + '</div>' +
-      '<textarea id="noteInput" placeholder="補足があれば"></textarea>' +
-      '<button class="submit" onclick="submitA()">この内容で提出する</button>';
+    renderOffForm();
     return;
   }
 
-  rows = [{ date: ctx.year + '-' + String(ctx.month).padStart(2,'0') + '-01', start: ctx.store.open, end: ctx.store.close }];
-  renderRowsAndButtons(monthLabel);
+  // 出勤可能日時（デフォルト）
+  renderWorkForm();
+}
+
+/* ========== 休み希望のみ ========== */
+function renderOffForm(){
+  const c = document.getElementById('content');
+  const days = sortedDays(offDays);
+  const summaryList = days.length
+    ? days.map(dayChipLabel).join('、')
+    : 'まだ選ばれていません（休みなしでも提出できます）';
+
+  c.innerHTML =
+    '<h1>' + esc(staffInfo.name) + 'さん</h1>' +
+    '<p class="sub">' + monthLabel() + 'の<strong>休みたい日</strong>をタップ</p>' +
+    '<p class="hint">まとめて選ぶボタンもあります。もう一度タップすると解除されます。</p>' +
+    quickChipsHtml('off') +
+    buildCalHtml('off') +
+    '<div class="summary"><strong>休み希望：' + days.length + '日</strong>' +
+      '<div class="list">' + esc(summaryList) + '</div></div>' +
+    '<textarea id="noteInput" placeholder="補足があれば（例：午前のみ可 など）"></textarea>' +
+    '<button type="button" class="submit" onclick="submitOff()">この内容で提出する（' + days.length + '日）</button>';
+}
+
+/* ========== 出勤可能日時 ========== */
+function renderWorkForm(){
+  const c = document.getElementById('content');
+  const days = sortedDays(workByDay);
+  const summaryList = days.length
+    ? days.map(function(d){
+        const t = workByDay[d];
+        return dayChipLabel(d) + ' ' + fmtTime(t.start) + '〜' + fmtTime(t.end);
+      }).join(' ／ ')
+    : 'カレンダーから出勤できる日をタップしてください';
+
+  let rowsHtml = '';
+  if(days.length){
+    rowsHtml = '<div class="rows" id="rowsEl">' + days.map(function(d){
+      const t = workByDay[d];
+      return '<div class="row">' +
+        '<div class="date-label">' + dayChipLabel(d) + '</div>' +
+        '<select onchange="updateWorkTime(' + d + ',\'start\',this.value)">' +
+          timeOpts(ctx.store.open, ctx.store.close - 0.5, t.start) + '</select>' +
+        '<span class="tilde">〜</span>' +
+        '<select onchange="updateWorkTime(' + d + ',\'end\',this.value)">' +
+          timeOpts(ctx.store.open + 0.5, ctx.store.close, t.end) + '</select>' +
+        '<button type="button" class="del" onclick="removeWorkDay(' + d + ')" aria-label="削除">✕</button>' +
+        '</div>';
+    }).join('') + '</div>';
+  }
+
+  c.innerHTML =
+    '<h1>' + esc(staffInfo.name) + 'さん</h1>' +
+    '<p class="sub">' + monthLabel() + 'の<strong>出勤できる日</strong>をタップ</p>' +
+    '<p class="hint">日付を選んだあと、下で時間を調整できます。「時間を一括適用」でまとめて変更もできます。</p>' +
+    quickChipsHtml('work') +
+    buildCalHtml('work') +
+    '<div class="summary"><strong>出勤希望：' + days.length + '日</strong>' +
+      '<div class="list">' + esc(summaryList) + '</div></div>' +
+    (days.length ? (
+      '<div class="bulk">' +
+        '<label>一括</label>' +
+        '<select id="bulkStart">' + timeOpts(ctx.store.open, ctx.store.close - 0.5, bulkStart) + '</select>' +
+        '<span class="tilde">〜</span>' +
+        '<select id="bulkEnd">' + timeOpts(ctx.store.open + 0.5, ctx.store.close, bulkEnd) + '</select>' +
+        '<button type="button" class="apply" onclick="applyBulkTime()">時間を一括適用</button>' +
+      '</div>' + rowsHtml
+    ) : '') +
+    '<button type="button" class="submit" ' + (days.length ? '' : 'disabled ') +
+      'onclick="submitWork()">この内容で提出する（' + days.length + '日）</button>';
 }
 
 function toggleDay(d){
-  if(offDays.has(d)){ offDays.delete(d); } else { offDays.add(d); }
-  document.querySelector('.day[data-d="' + d + '"]').classList.toggle('on');
+  if(staffInfo.mode === '休み希望のみ'){
+    if(offDays.has(d)) offDays.delete(d); else offDays.add(d);
+    renderOffForm();
+    return;
+  }
+  if(workByDay[d]){
+    delete workByDay[d];
+  } else {
+    workByDay[d] = { start: ctx.store.open, end: ctx.store.close };
+  }
+  renderWorkForm();
 }
 
-function renderRowsAndButtons(monthLabel){
-  const c = document.getElementById('content');
-  c.innerHTML = '<h1>' + staffInfo.name + 'さん</h1>' +
-    '<p class="sub">' + monthLabel + '、出勤できる日時を入力してください</p>' +
-    '<div class="rows" id="rowsEl"></div>' +
-    '<button class="add-row" onclick="addRow()">＋ 希望日を追加</button>' +
-    '<button class="submit" onclick="submitB()">この内容で提出する</button>';
-  renderRows();
+function selectWeekdays(mode){ selectBy(mode, function(d){ return !isWeekend(d); }); }
+function selectWeekends(mode){ selectBy(mode, function(d){ return isWeekend(d); }); }
+function selectAll(mode){ selectBy(mode, function(){ return true; }); }
+
+function selectBy(mode, pred){
+  if(mode === 'off'){
+    for(let d = 1; d <= ctx.daysInMonth; d++){
+      if(pred(d)) offDays.add(d);
+    }
+    renderOffForm();
+  } else {
+    for(let d = 1; d <= ctx.daysInMonth; d++){
+      if(pred(d) && !workByDay[d]){
+        workByDay[d] = { start: bulkStart != null ? bulkStart : ctx.store.open, end: bulkEnd != null ? bulkEnd : ctx.store.close };
+      }
+    }
+    renderWorkForm();
+  }
 }
 
-function renderRows(){
-  const el = document.getElementById('rowsEl');
-  const minD = ctx.year + '-' + String(ctx.month).padStart(2,'0') + '-01';
-  const maxD = ctx.year + '-' + String(ctx.month).padStart(2,'0') + '-' + String(ctx.daysInMonth).padStart(2,'0');
-  el.innerHTML = rows.map(function(r, i){
-    return '<div class="row">' +
-      '<input type="date" value="' + r.date + '" min="' + minD + '" max="' + maxD + '" onchange="updateRow(' + i + ',\'date\',this.value)">' +
-      '<select onchange="updateRow(' + i + ',\'start\',this.value)">' + timeOpts(ctx.store.open, ctx.store.close - 0.5, r.start) + '</select>' +
-      '<span>〜</span>' +
-      '<select onchange="updateRow(' + i + ',\'end\',this.value)">' + timeOpts(ctx.store.open + 0.5, ctx.store.close, r.end) + '</select>' +
-      (rows.length > 1 ? '<button class="del" onclick="delRow(' + i + ')">✕</button>' : '') +
-      '</div>';
-  }).join('');
+function clearDays(mode){
+  if(mode === 'off'){
+    offDays = new Set();
+    renderOffForm();
+  } else {
+    workByDay = {};
+    renderWorkForm();
+  }
 }
 
-function updateRow(i, field, val){
-  rows[i][field] = (field === 'date') ? val : parseFloat(val);
-  if(rows[i].end <= rows[i].start) rows[i].end = Math.min(rows[i].start + 1, ctx.store.close);
-  renderRows();
-}
-function addRow(){
-  const last = rows[rows.length - 1];
-  rows.push({ date: last.date, start: ctx.store.open, end: ctx.store.close });
-  renderRows();
-}
-function delRow(i){ rows.splice(i, 1); renderRows(); }
-
-function submitB(){
-  setStatus('送信中…');
-  api({ action: 'submitRequests', staffId: staffInfo.id, storeId: staffInfo.storeId, rows: rows })
-    .then(function(){
-      showSuccess(rows.length + '件の希望を提出しました。');
-    })
-    .catch(function(err){ showError('提出', err); });
+function updateWorkTime(day, field, val){
+  if(!workByDay[day]) return;
+  workByDay[day][field] = parseFloat(val);
+  if(workByDay[day].end <= workByDay[day].start){
+    workByDay[day].end = Math.min(workByDay[day].start + 1, ctx.store.close);
+  }
+  renderWorkForm();
 }
 
-function submitA(){
-  const list = Array.from(offDays).sort(function(a,b){ return a-b; });
-  const note = document.getElementById('noteInput').value;
-  const monthStr = ctx.year + '-' + String(ctx.month).padStart(2,'0') + '-';
-  const dates = list.map(function(d){ return monthStr + String(d).padStart(2,'0'); });
+function removeWorkDay(day){
+  delete workByDay[day];
+  renderWorkForm();
+}
+
+function applyBulkTime(){
+  const sEl = document.getElementById('bulkStart');
+  const eEl = document.getElementById('bulkEnd');
+  if(!sEl || !eEl) return;
+  let s = parseFloat(sEl.value);
+  let e = parseFloat(eEl.value);
+  if(e <= s) e = Math.min(s + 1, ctx.store.close);
+  bulkStart = s;
+  bulkEnd = e;
+  Object.keys(workByDay).forEach(function(k){
+    workByDay[k] = { start: s, end: e };
+  });
+  renderWorkForm();
+}
+
+function submitOff(){
+  const list = sortedDays(offDays);
+  const noteEl = document.getElementById('noteInput');
+  const note = noteEl ? noteEl.value : '';
+  const dates = list.map(dateStr);
+  if(list.length && !confirm(monthLabel() + 'の休み希望 ' + list.length + '日分を提出します。よろしいですか？')) return;
+  if(!list.length && !confirm('休み希望なしで提出します。よろしいですか？')) return;
   setStatus('送信中…');
   api({ action: 'submitDaysOff', staffId: staffInfo.id, storeId: staffInfo.storeId, dates: dates, note: note })
     .then(function(){
-      showSuccess(list.length ? list.length + '日分の休み希望を提出しました。' : '休み希望なしで提出しました。');
+      const detail = list.length
+        ? list.map(dayChipLabel).join('、')
+        : '休み希望なし';
+      showSuccess(
+        list.length ? list.length + '日分の休み希望を提出しました。' : '休み希望なしで提出しました。',
+        detail
+      );
     })
     .catch(function(err){ showError('提出', err); });
 }
 
-function showSuccess(text){
+function submitWork(){
+  const days = sortedDays(workByDay);
+  if(!days.length){
+    alert('出勤できる日を1日以上選んでください。');
+    return;
+  }
+  const rows = days.map(function(d){
+    return { date: dateStr(d), start: workByDay[d].start, end: workByDay[d].end };
+  });
+  const preview = days.map(function(d){
+    return dayChipLabel(d) + ' ' + fmtTime(workByDay[d].start) + '〜' + fmtTime(workByDay[d].end);
+  }).join('\n');
+  if(!confirm(monthLabel() + 'の出勤希望 ' + days.length + '日分を提出します。\n\n' + preview)) return;
+
+  setStatus('送信中…');
+  api({ action: 'submitRequests', staffId: staffInfo.id, storeId: staffInfo.storeId, rows: rows })
+    .then(function(){
+      showSuccess(days.length + '日分の出勤希望を提出しました。', preview.replace(/\n/g, ' ／ '));
+    })
+    .catch(function(err){ showError('提出', err); });
+}
+
+function showSuccess(text, detail){
   document.getElementById('content').innerHTML =
     '<div class="success"><div class="big">✓</div><h1 style="text-align:center">提出を受け付けました！</h1>' +
-    '<p class="msg">' + text + '</p></div>';
+    '<p class="msg">' + esc(text) + '</p>' +
+    (detail ? '<div class="summary"><div class="list">' + esc(detail) + '</div></div>' : '') +
+    '</div>';
 }
 
 boot();
