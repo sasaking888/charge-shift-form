@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
 <title>CHARGE 売上表</title>
+<script src="https://www.gstatic.com/charts/loader.js"></script>
 <style>
 :root{
   --bg:#EEF1F6; --surface:#FFFFFF; --ink:#141B26; --muted:#5B6575;
-  --line:#D8DEE8; --accent:#FFC400; --accent-ink:#3A2E00; --lgreen:#06C755; --risk:#D45B6A; --blue:#3B7DD8;
+  --line:#D8DEE8; --blue:#3B7DD8; --risk:#D45B6A;
 }
 *{box-sizing:border-box}
 body{margin:0;padding:12px;padding-bottom:32px;background:var(--bg);color:var(--ink);
@@ -36,156 +36,104 @@ h2{font-size:13.5px;margin:0 0 10px;font-weight:700}
   font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink)
 }
 .mnav .mon{font-weight:800;font-size:15px;min-width:6.5em;text-align:center}
-.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
-.tabs button{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;
-  padding:6px 14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
-.tabs button.on{background:var(--ink);border-color:var(--ink);color:#fff}
-.sum-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:4px}
+.sum-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
 .sum-card{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center}
 .sum-card .k{font-size:10.5px;color:var(--muted);font-weight:600;margin-bottom:2px}
 .sum-card .v{font-size:15px;font-weight:800;word-break:break-all}
 .table-wrap{overflow-x:auto}
 table.sales{width:100%;border-collapse:collapse;font-size:12.5px;min-width:640px}
-table.sales th{text-align:left;font-size:11px;color:var(--muted);font-weight:700;padding:8px 8px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--bg);position:sticky;top:0}
+table.sales th{text-align:left;font-size:11px;color:var(--muted);font-weight:700;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--bg)}
 table.sales th.r,table.sales td.r{text-align:right}
-table.sales td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+table.sales td{padding:9px 8px;border-bottom:1px solid var(--line)}
 table.sales tbody tr:hover{background:color-mix(in srgb, var(--blue) 6%, #fff)}
 table.sales tfoot td{font-weight:800;border-top:1px solid var(--line);border-bottom:0;padding-top:12px;background:var(--bg)}
 .wtable{width:100%;border-collapse:collapse;font-size:12.5px}
 .wtable th,.wtable td{padding:9px 8px;border-bottom:1px solid var(--line)}
-.wtable th{font-size:11px;color:var(--muted);text-align:left}
+.wtable th{font-size:11px;color:var(--muted)}
 .wtable th.r,.wtable td.r{text-align:right}
-.wtable tfoot td{font-weight:800;border-top:1px solid var(--line);border-bottom:0}
 .foot{text-align:center;font-size:10px;color:#9AA3AF;margin-top:10px}
 .badge{display:inline-block;font-size:10px;font-weight:700;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:var(--muted)}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="topnav" id="topnav" style="display:none">
+  <div class="topnav">
     <div class="links">
       <a href="top.html">← 管理TOP</a>
       <a href="admin.html?v=1.5">シフト管理</a>
       <a href="cost.html?v=1.1">週次人件費</a>
-      <a href="sales.html?v=1.0" class="on">売上表</a>
+      <a href="sales.html?v=2.0" class="on">売上表</a>
     </div>
     <div class="links">
       <button type="button" class="navbtn" onclick="logout()">ログアウト</button>
     </div>
   </div>
-  <div class="card" id="appHead" style="display:none">
+  <div class="card">
     <div class="head">
-      <h1>売上表 <span class="badge">閲覧のみ</span></h1>
+      <h1>売上表 <span class="badge">GAS貼り付け不要</span></h1>
       <div class="mnav">
         <button type="button" onclick="moveMonth(-1)">◀</button>
         <span class="mon" id="monLabel"></span>
         <button type="button" onclick="moveMonth(1)">▶</button>
       </div>
     </div>
-    <div class="tabs" id="tabs"></div>
     <div class="sum-cards" id="summary"></div>
   </div>
-  <div id="content"><p class="msg">読み込み中…</p></div>
-  <div class="foot">sales v1.1</div>
+  <div id="content"><p class="msg">準備中…</p></div>
+  <div class="foot">sales v2.0</div>
 </div>
 <script>
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxeXoT_E22dAyb_rz7hH0Q0_JeJqqhNJyV-VfGtvDpVjVZlEtUH4wxKUY8i64H66VFT/exec';
+// ===== 設定（ここだけ変えればOK） =====
+const SALES_SS_ID = '1tkaQzpRwSehJwl4tfZVqARGxORHjxY3g1XM7A1bkdwo';
+const STORE_LABEL = 'K1';
 const ADMIN_KEY_STORAGE = 'chargeAdminKey';
 
-// サマリー候補（ヘッダに含まれていれば合計）。既存スプシの列名に合わせて増やす
-const SUM_KEYS = [
-  '客数', '来客数', '組数', '人数', '施術人数', '施+回', 'リピート客数', 'リ+回',
-  '売上金額', '売上', '売上高', '合計', '総売上', '税抜',
-  '現金', 'カード', 'カード・その他', 'クレジット', '電子マネー', 'キャッシュレス',
-  'チケット・回数券', 'チケット', '回数券', '回数券購入', '回数券利用人数', '回数券利用枚数'
-];
+const SUM_HINTS = ['施術人数','施+回','リピート客数','リ+回','現金','キャッシュレス','総売上','税抜','回数券購入','回数券利用人数','回数券利用枚数'];
 
-let D = null;
 let cur = { y: 0, m: 0 };
-let storeId = null; // null = 権限店舗すべて, or store id
+let headers = [];
+let rows = [];
 
-function api(payload){
-  payload.adminKey = localStorage.getItem(ADMIN_KEY_STORAGE) || '';
-  if (!payload.userId) payload.userId = 'ADMIN';
-  return fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify(payload) })
-    .then(function(r){ return r.json(); })
-    .then(function(j){
-      if (!j.ok) throw new Error(j.error || 'サーバーエラー');
-      return j.data;
-    });
+function esc(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);
+  });
 }
-function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function yen(n){ return '¥' + Math.round(n).toLocaleString(); }
 function setMsg(t, isErr){
-  document.getElementById('content').innerHTML = '<div class="card"><p class="msg' + (isErr ? ' err' : '') + '">' + t + '</p></div>';
+  document.getElementById('content').innerHTML =
+    '<div class="card"><p class="msg' + (isErr ? ' err' : '') + '">' + t + '</p></div>';
 }
 function toNum(v){
   if (v === '' || v === null || v === undefined) return null;
-  if (typeof v === 'number') return v;
+  if (typeof v === 'number') return isNaN(v) ? null : v;
   const n = Number(String(v).replace(/,/g, '').replace(/[¥円]/g, '').trim());
   return isNaN(n) ? null : n;
 }
-function daysInMonth(y, m){ return new Date(y, m, 0).getDate(); }
+function sheetName(y, m){ return y + '.' + m + '月'; }
+function isSumCol(name){
+  if (!name) return false;
+  if (name.indexOf('単価') >= 0) return false;
+  if (SUM_HINTS.indexOf(name) >= 0) return true;
+  return /人数|客数|売上|現金|キャッシュ|税抜|回数券/.test(name) && name.indexOf('曜日') < 0;
+}
+function isMoneyCol(name){ return /売上|現金|キャッシュ|税抜|円/.test(name || ''); }
 
-/** 月1日始まりの週 */
-function getWeeksOfMonth(){
-  const dim = daysInMonth(cur.y, cur.m);
+function getWeeks(y, m){
+  const dim = new Date(y, m, 0).getDate();
   const weeks = [];
   for (let start = 1; start <= dim; start += 7) {
     const end = Math.min(start + 6, dim);
     const days = [];
     for (let d = start; d <= end; d++) days.push(d);
-    weeks.push({
-      days: days, index: weeks.length, start: start, end: end,
-      label: '第' + (weeks.length + 1) + '週',
-      range: cur.m + '/' + start + '〜' + cur.m + '/' + end
-    });
+    weeks.push({ days: days, label: '第' + (weeks.length + 1) + '週', range: m + '/' + start + '〜' + m + '/' + end });
   }
   return weeks;
-}
-
-function boot(){
-  const now = new Date();
-  cur.y = now.getFullYear();
-  cur.m = now.getMonth() + 1;
-  if (!localStorage.getItem(ADMIN_KEY_STORAGE)) {
-    location.href = 'top.html';
-    return;
-  }
-  document.getElementById('topnav').style.display = '';
-  document.getElementById('appHead').style.display = '';
-  load();
 }
 
 function logout(){
   localStorage.removeItem(ADMIN_KEY_STORAGE);
   location.href = 'top.html';
-}
-
-function load(){
-  setMsg('データを読み込み中…');
-  api({ action: 'salesData', userId: 'ADMIN', year: cur.y, month: cur.m })
-    .then(function(d){
-      if (d.noPermission) {
-        setMsg('管理者権限が未登録です。⑥権限マスタに ADMIN を追加してください。', true);
-        return;
-      }
-      D = d;
-      if (storeId && !D.stores.some(function(s){ return s.id === storeId; })) storeId = null;
-      render();
-    })
-    .catch(function(e){
-      if (String(e.message).indexOf('管理キー') >= 0) {
-        localStorage.removeItem(ADMIN_KEY_STORAGE);
-        location.href = 'top.html';
-        return;
-      }
-      if (String(e.message).indexOf('不明なアクション') >= 0) {
-        setMsg('GAS に salesData が未反映です。gas-code-current.gs の売上関数を本番に貼り、新バージョンでデプロイしてください。', true);
-        return;
-      }
-      setMsg('読み込みエラー: ' + e.message, true);
-    });
 }
 
 function moveMonth(dir){
@@ -195,13 +143,83 @@ function moveMonth(dir){
   load();
 }
 
-function filteredRows(){
-  if (!D || !D.rows) return [];
-  if (!storeId) return D.rows.slice();
-  return D.rows.filter(function(r){ return r.storeId === storeId; });
+function boot(){
+  if (!localStorage.getItem(ADMIN_KEY_STORAGE)) {
+    location.href = 'top.html';
+    return;
+  }
+  const now = new Date();
+  cur.y = now.getFullYear();
+  cur.m = now.getMonth() + 1;
+  setMsg('Googleスプレッドシート接続中…');
+  google.charts.load('current', { packages: ['corechart'] });
+  google.charts.setOnLoadCallback(load);
 }
 
-function sumField(rows, key){
+function load(){
+  document.getElementById('monLabel').textContent = cur.y + '年' + cur.m + '月';
+  const name = sheetName(cur.y, cur.m);
+  setMsg('読み込み中…（' + esc(name) + '）');
+
+  const url = 'https://docs.google.com/spreadsheets/d/' + SALES_SS_ID +
+    '/gviz/tq?sheet=' + encodeURIComponent(name);
+  const query = new google.visualization.Query(url);
+  query.send(function(res){
+    if (res.isError()) {
+      setMsg(
+        '読み込みエラー: ' + esc(res.getMessage()) +
+        '<br><br>タブ「' + esc(name) + '」があるか、' +
+        'スプシ共有が「リンクを知っている全員が閲覧可」になっているか確認してください。',
+        true
+      );
+      document.getElementById('summary').innerHTML = '';
+      return;
+    }
+    const dt = res.getDataTable();
+    // ヘッダ
+    headers = [];
+    for (let c = 0; c < dt.getNumberOfColumns(); c++) {
+      headers.push(String(dt.getColumnLabel(c) || '').trim());
+    }
+    // 日付列: 「7月」など
+    let dateIdx = 0;
+    for (let c = 0; c < headers.length; c++) {
+      if (/^\d{1,2}月$/.test(headers[c]) || headers[c] === '日付') { dateIdx = c; break; }
+    }
+    const mPrefix = cur.y + '-' + String(cur.m).padStart(2, '0');
+    rows = [];
+    for (let r = 0; r < dt.getNumberOfRows(); r++) {
+      let dayRaw = dt.getValue(r, dateIdx);
+      let dayNum = null;
+      if (typeof dayRaw === 'number') dayNum = dayRaw;
+      else if (dayRaw instanceof Date) dayNum = dayRaw.getDate();
+      else dayNum = parseInt(String(dayRaw || '').replace(/[^\d]/g, ''), 10);
+      if (!dayNum || dayNum < 1 || dayNum > 31) continue;
+
+      const values = {};
+      let any = false;
+      for (let c = 0; c < headers.length; c++) {
+        if (!headers[c]) continue;
+        let v = dt.getValue(r, c);
+        if (v instanceof Date) v = (v.getMonth() + 1) + '/' + v.getDate(); // 表示用は簡易
+        // 数値フォーマットされた文字列が欲しい場合は getFormattedValue
+        const fv = dt.getFormattedValue(r, c);
+        if (c !== dateIdx && fv !== '' && fv != null) any = true;
+        // 数値列は raw 数値優先
+        if (typeof v === 'number') values[headers[c]] = v;
+        else values[headers[c]] = fv;
+      }
+      if (!any) continue;
+      const date = mPrefix + '-' + String(dayNum).padStart(2, '0');
+      values['日付'] = date;
+      rows.push({ date: date, day: dayNum, values: values });
+    }
+    rows.sort(function(a, b){ return a.day - b.day; });
+    render(name);
+  });
+}
+
+function sumField(key){
   let t = 0, any = false;
   rows.forEach(function(r){
     const n = toNum(r.values[key]);
@@ -210,137 +228,84 @@ function sumField(rows, key){
   return any ? t : null;
 }
 
-function render(){
-  document.getElementById('monLabel').textContent = cur.y + '年' + cur.m + '月';
-  const tabs = document.getElementById('tabs');
-  let tabHtml = '<button type="button" class="' + (!storeId ? 'on' : '') + '" onclick="switchStore(null)">全店舗</button>';
-  (D.stores || []).forEach(function(s){
-    tabHtml += '<button type="button" class="' + (storeId === s.id ? 'on' : '') + '" onclick="switchStore(\'' + esc(s.id) + '\')">' + esc(s.name) + '</button>';
-  });
-  tabs.innerHTML = tabHtml;
-
-  const rows = filteredRows();
-  const headers = (D.headers || []).filter(function(h){ return h && h !== '店舗ID'; });
-  // 表示列: 日付を先頭、店舗は全店舗時のみ
-  const showStore = !storeId;
-  const displayHeaders = [];
-  if (headers.indexOf('日付') >= 0) displayHeaders.push('日付');
-  if (showStore) displayHeaders.push('店舗');
-  headers.forEach(function(h){
-    if (h === '日付' || h === '店舗ID') return;
-    displayHeaders.push(h);
-  });
-
-  // サマリー
+function render(sheetNm){
   let sumHtml = '';
-  SUM_KEYS.forEach(function(k){
-    if ((D.headers || []).indexOf(k) === -1) return;
-    const t = sumField(rows, k);
+  headers.forEach(function(h){
+    if (!isSumCol(h)) return;
+    const t = sumField(h);
     if (t === null) return;
-    const isMoney = k.indexOf('客数') === -1;
-    sumHtml += '<div class="sum-card"><div class="k">' + esc(k) + '（月計）</div><div class="v">' +
-      (isMoney ? yen(t) : Math.round(t).toLocaleString()) + '</div></div>';
+    sumHtml += '<div class="sum-card"><div class="k">' + esc(h) + '（月計）</div><div class="v">' +
+      (isMoneyCol(h) ? yen(t) : Math.round(t).toLocaleString()) + '</div></div>';
   });
-  if (!sumHtml) {
-    sumHtml = '<div class="sum-card"><div class="k">行数</div><div class="v">' + rows.length + '</div></div>';
-  }
+  if (!sumHtml) sumHtml = '<div class="sum-card"><div class="k">行数</div><div class="v">' + rows.length + '</div></div>';
   document.getElementById('summary').innerHTML = sumHtml;
 
-  let html = '';
-  html += '<div class="card">';
-  html += '<h2>日次明細</h2>';
-  html += '<p class="hint">読み取り元: 「' + esc(D.sheetName || '（シート名未設定）') + '」' +
-    (D.spreadsheetId ? ' / ID …' + esc(String(D.spreadsheetId).slice(-8)) : '') +
-    '（編集は元スプシ側）。日付列=' + esc(D.dateHeader || '自動') +
-    (D.storeHeader ? ' / 店舗列=' + esc(D.storeHeader) : '') +
-    '。列はスプシの1行目ヘッダをそのまま表示します。</p>';
+  const showHeaders = ['日付'].concat(headers.filter(function(h){ return h && h !== '日付'; }));
+  let html = '<div class="card">';
+  html += '<h2>日次明細 · ' + esc(sheetNm) + ' · ' + esc(STORE_LABEL) + '</h2>';
+  html += '<p class="hint">GASへの貼り付け不要です。編集は元のスプレッドシートで。週は月1日始まり（1–7が第1週）。</p>';
 
   if (!rows.length) {
-    html += '<p class="msg">この月のデータがありません。シートに日付・店舗IDを入れて保存するとここに出ます。</p>';
-  } else {
-    html += '<div class="table-wrap"><table class="sales"><thead><tr>';
-    displayHeaders.forEach(function(h){
-      const isNum = SUM_KEYS.indexOf(h) >= 0;
-      html += '<th class="' + (isNum ? 'r' : '') + '">' + esc(h) + '</th>';
-    });
-    html += '</tr></thead><tbody>';
-    rows.forEach(function(r){
-      html += '<tr>';
-      displayHeaders.forEach(function(h){
-        if (h === '店舗') {
-          const st = (D.stores || []).find(function(s){ return s.id === r.storeId; });
-          html += '<td>' + esc(st ? st.name : r.storeId) + '</td>';
-          return;
-        }
-        let v = r.values[h];
-        const isNum = SUM_KEYS.indexOf(h) >= 0;
-        if (isNum) {
-          const n = toNum(v);
-          html += '<td class="r">' + (n === null ? '–' : (h.indexOf('客数') >= 0 ? Math.round(n).toLocaleString() : yen(n))) + '</td>';
-        } else {
-          html += '<td>' + esc(v === '' || v == null ? '–' : v) + '</td>';
-        }
-      });
-      html += '</tr>';
-    });
-    // footer totals
-    html += '</tbody><tfoot><tr>';
-    displayHeaders.forEach(function(h, i){
-      if (i === 0) { html += '<td>合計</td>'; return; }
-      if (h === '店舗') { html += '<td></td>'; return; }
-      if (SUM_KEYS.indexOf(h) >= 0) {
-        const t = sumField(rows, h);
-        html += '<td class="r">' + (t === null ? '–' : (h.indexOf('客数') >= 0 ? Math.round(t).toLocaleString() : yen(t))) + '</td>';
-      } else html += '<td></td>';
-    });
-    html += '</tr></tfoot></table></div>';
+    html += '<p class="msg">この月のデータがありません。</p></div>';
+    document.getElementById('content').innerHTML = html;
+    return;
   }
-  html += '</div>';
 
-  // 週次サマリー（売上金額・客数があれば）
-  const weeks = getWeeksOfMonth();
-  const hasSales = (D.headers || []).indexOf('売上金額') >= 0;
-  const hasGuests = (D.headers || []).indexOf('客数') >= 0;
-  html += '<div class="card"><h2>週一覧（月1日始まり）</h2>';
-  html += '<p class="hint">第1週＝1–7日。売上金額・客数がある場合のみ集計します。</p>';
-  html += '<table class="wtable"><thead><tr><th>週</th><th class="r">行数</th>';
-  if (hasGuests) html += '<th class="r">客数</th>';
-  if (hasSales) html += '<th class="r">売上金額</th>';
+  html += '<div class="table-wrap"><table class="sales"><thead><tr>';
+  showHeaders.forEach(function(h){
+    html += '<th class="' + (isSumCol(h) ? 'r' : '') + '">' + esc(h) + '</th>';
+  });
+  html += '</tr></thead><tbody>';
+  rows.forEach(function(r){
+    html += '<tr>';
+    showHeaders.forEach(function(h){
+      if (h === '日付') { html += '<td>' + esc(r.date) + '</td>'; return; }
+      const v = r.values[h];
+      if (isSumCol(h)) {
+        const n = toNum(v);
+        html += '<td class="r">' + (n === null ? '–' : (isMoneyCol(h) ? yen(n) : Math.round(n).toLocaleString())) + '</td>';
+      } else {
+        html += '<td>' + esc(v === '' || v == null ? '–' : v) + '</td>';
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</tbody><tfoot><tr>';
+  showHeaders.forEach(function(h, i){
+    if (i === 0) { html += '<td>合計</td>'; return; }
+    if (isSumCol(h)) {
+      const t = sumField(h);
+      html += '<td class="r">' + (t === null ? '–' : (isMoneyCol(h) ? yen(t) : Math.round(t).toLocaleString())) + '</td>';
+    } else html += '<td></td>';
+  });
+  html += '</tr></tfoot></table></div></div>';
+
+  const weeks = getWeeks(cur.y, cur.m);
+  const moneyKey = headers.indexOf('総売上') >= 0 ? '総売上' : null;
+  const guestKey = headers.indexOf('施術人数') >= 0 ? '施術人数' : null;
+  html += '<div class="card"><h2>週一覧（月1日始まり）</h2><table class="wtable"><thead><tr><th>週</th><th class="r">行数</th>';
+  if (guestKey) html += '<th class="r">' + esc(guestKey) + '</th>';
+  if (moneyKey) html += '<th class="r">' + esc(moneyKey) + '</th>';
   html += '</tr></thead><tbody>';
   weeks.forEach(function(wk){
-    const wrows = rows.filter(function(r){
-      const day = Number(String(r.date).split('-')[2]);
-      return wk.days.indexOf(day) >= 0;
-    });
+    const wrows = rows.filter(function(r){ return wk.days.indexOf(r.day) >= 0; });
     html += '<tr><td><b>' + esc(wk.label) + '</b> <span style="color:var(--muted);font-size:11px">' + esc(wk.range) + '</span></td>';
     html += '<td class="r">' + wrows.length + '</td>';
-    if (hasGuests) {
-      const g = sumField(wrows, '客数');
-      html += '<td class="r">' + (g === null ? '–' : Math.round(g).toLocaleString()) + '</td>';
+    if (guestKey) {
+      let g = 0, any = false;
+      wrows.forEach(function(r){ const n = toNum(r.values[guestKey]); if (n !== null) { g += n; any = true; } });
+      html += '<td class="r">' + (any ? Math.round(g).toLocaleString() : '–') + '</td>';
     }
-    if (hasSales) {
-      const s = sumField(wrows, '売上金額');
-      html += '<td class="r">' + (s === null ? '–' : yen(s)) + '</td>';
+    if (moneyKey) {
+      let s = 0, any = false;
+      wrows.forEach(function(r){ const n = toNum(r.values[moneyKey]); if (n !== null) { s += n; any = true; } });
+      html += '<td class="r">' + (any ? yen(s) : '–') + '</td>';
     }
     html += '</tr>';
   });
-  html += '</tbody><tfoot><tr><td>月計</td><td class="r">' + rows.length + '</td>';
-  if (hasGuests) {
-    const g = sumField(rows, '客数');
-    html += '<td class="r">' + (g === null ? '–' : Math.round(g).toLocaleString()) + '</td>';
-  }
-  if (hasSales) {
-    const s = sumField(rows, '売上金額');
-    html += '<td class="r">' + (s === null ? '–' : yen(s)) + '</td>';
-  }
-  html += '</tr></tfoot></table></div>';
+  html += '</tbody></table></div>';
 
   document.getElementById('content').innerHTML = html;
-}
-
-function switchStore(id){
-  storeId = id;
-  render();
 }
 
 boot();
