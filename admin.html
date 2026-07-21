@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>CHARGE 管理コンソール</title>
+<title>CHARGE シフト管理</title>
 <script>
 window.onerror = function(msg, src, line, col){
   var box = document.createElement('div');
@@ -183,19 +183,36 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
 .login-card input{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:10px 12px;
   font-size:14px;font-family:inherit;background:var(--surface);color:var(--ink)}
 .login-card .row{display:flex;gap:8px;margin-top:10px}
+.topnav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.topnav .links{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.topnav a,.topnav .navbtn{
+  display:inline-block;border:1px solid var(--line);background:var(--surface);border-radius:999px;
+  padding:5px 12px;font-size:12px;font-weight:700;color:var(--ink);text-decoration:none;font-family:inherit;cursor:pointer
+}
+.topnav a.on,.topnav .navbtn.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.topnav .crumb{font-size:12px;color:var(--muted);font-weight:600}
 </style>
 </head>
 <body>
 <div class="wrap">
+  <div class="topnav" id="topnav" style="display:none">
+    <div class="links">
+      <a href="top.html">← 管理TOP</a>
+      <a href="admin.html" class="on">シフト管理</a>
+    </div>
+    <div class="links">
+      <span class="crumb">シフト専用ページ</span>
+      <button type="button" class="navbtn" onclick="logout()">ログアウト</button>
+    </div>
+  </div>
   <div class="banner" id="banner"></div>
   <div class="card" id="appHead" style="display:none">
     <div class="head">
-      <h1>管理コンソール</h1>
+      <h1>シフト管理</h1>
       <div class="mnav">
         <button type="button" onclick="moveMonth(-1)">◀</button>
         <span class="mon" id="monLabel"></span>
         <button type="button" onclick="moveMonth(1)">▶</button>
-        <button type="button" class="iconbtn" onclick="logout()">ログアウト</button>
       </div>
     </div>
     <div class="tabs" id="tabs"></div>
@@ -204,7 +221,7 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
     <div class="tools" id="tools"></div>
   </div>
   <div id="content"><p class="msg">読み込み中…</p></div>
-  <div class="foot">admin v1.0</div>
+  <div class="foot">shift-admin v1.1</div>
 </div>
 <script>
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxeXoT_E22dAyb_rz7hH0Q0_JeJqqhNJyV-VfGtvDpVjVZlEtUH4wxKUY8i64H66VFT/exec';
@@ -252,35 +269,34 @@ function boot(){
   const now = new Date();
   cur.y = now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear();
   cur.m = now.getMonth() === 11 ? 1 : now.getMonth() + 2;
-  if(localStorage.getItem(ADMIN_KEY_STORAGE)) load();
-  else showLogin('');
+  // ログインは管理TOPで行う。未ログインならTOPへ
+  if(!localStorage.getItem(ADMIN_KEY_STORAGE)){
+    location.href = 'top.html';
+    return;
+  }
+  document.getElementById('topnav').style.display = '';
+  load();
 }
 
 function showLogin(err){
+  // 互換: 直リンク時はTOPへ誘導
   document.getElementById('appHead').style.display = 'none';
+  document.getElementById('topnav').style.display = 'none';
   document.getElementById('content').innerHTML =
     '<div class="card login-card">' +
-    '<h1 style="margin-bottom:4px">CHARGE 管理コンソール</h1>' +
-    '<p class="hint" style="margin:0 0 4px">オーナー・店長用の管理キーを入力してください。この端末に保存され、次回から自動でログインします。</p>' +
-    (err ? '<p class="msg err" style="text-align:left;margin:8px 0 0">' + esc(err) + '</p>' : '') +
-    '<div class="row">' +
-    '<input type="password" id="keyInput" placeholder="管理キー" autocomplete="current-password">' +
-    '<button type="button" class="toolbtn primary" onclick="doLogin()">ログイン</button></div></div>';
-  const inp = document.getElementById('keyInput');
-  inp.addEventListener('keydown', function(ev){ if(ev.key === 'Enter') doLogin(); });
-  inp.focus();
+    '<h1 style="margin-bottom:4px">シフト管理</h1>' +
+    '<p class="hint" style="margin:0 0 10px">ログインは管理TOPから行います。</p>' +
+    (err ? '<p class="msg err" style="text-align:left;margin:0 0 10px">' + esc(err) + '</p>' : '') +
+    '<a class="toolbtn primary" style="display:inline-block;text-decoration:none" href="top.html">管理TOPへ</a></div>';
 }
 function doLogin(){
-  const v = document.getElementById('keyInput').value.trim();
-  if(!v) return;
-  localStorage.setItem(ADMIN_KEY_STORAGE, v);
-  load();
+  location.href = 'top.html';
 }
 function logout(){
-  if(dirtyCount() && !confirm('未保存の変更が ' + dirtyCount() + ' 件あります。破棄してログアウトしますか？')) return;
+  if(typeof dirtyCount === 'function' && dirtyCount() && !confirm('未保存の変更が ' + dirtyCount() + ' 件あります。破棄してログアウトしますか？')) return;
   localStorage.removeItem(ADMIN_KEY_STORAGE);
   pending = {};
-  showLogin('');
+  location.href = 'top.html';
 }
 
 function dirtyCount(){ return Object.keys(pending).length; }
@@ -372,7 +388,7 @@ function load(){
     .catch(function(e){
       if(String(e.message).indexOf('管理キー') >= 0){
         localStorage.removeItem(ADMIN_KEY_STORAGE);
-        showLogin(e.message);
+        location.href = 'top.html';
         return;
       }
       setMsg('読み込みエラー: ' + e.message, true);

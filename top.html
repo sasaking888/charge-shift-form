@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>CHARGE 管理TOP</title>
+<style>
+:root{
+  --bg:#EEF1F6; --surface:#FFFFFF; --ink:#141B26; --muted:#5B6575;
+  --line:#D8DEE8; --accent:#FFC400; --accent-ink:#3A2E00; --lgreen:#06C755; --risk:#D45B6A; --blue:#3B7DD8;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:20px 16px 40px;background:var(--bg);color:var(--ink);
+  font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;font-size:14px;line-height:1.55}
+.wrap{max-width:920px;margin:0 auto}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.brand{display:flex;flex-direction:column;gap:2px}
+.brand h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.02em}
+.brand .sub{font-size:12px;color:var(--muted);font-weight:600}
+.btn{
+  border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 14px;
+  font-size:13px;font-weight:700;font-family:inherit;color:var(--ink);cursor:pointer
+}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 18px;
+  box-shadow:0 1px 3px rgba(20,27,38,.05);margin-bottom:14px}
+.hint{font-size:12px;color:var(--muted);margin:0 0 10px;line-height:1.5}
+.err{color:var(--risk);font-size:13px;margin:0 0 10px}
+.login-row{display:flex;gap:8px;flex-wrap:wrap}
+.login-row input{
+  flex:1;min-width:200px;border:1px solid var(--line);border-radius:10px;padding:11px 12px;
+  font-size:14px;font-family:inherit;background:var(--bg)
+}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.menu-card{
+  display:flex;flex-direction:column;align-items:flex-start;text-align:left;
+  border:1px solid var(--line);background:var(--surface);border-radius:16px;padding:18px 16px;
+  cursor:pointer;font-family:inherit;color:inherit;transition:border-color .12s, box-shadow .12s, transform .12s;
+  min-height:148px
+}
+.menu-card:hover:not(:disabled){border-color:var(--blue);box-shadow:0 4px 14px rgba(59,125,216,.12);transform:translateY(-1px)}
+.menu-card:disabled{cursor:not-allowed;opacity:.72;background:var(--bg)}
+.menu-card .icon{
+  width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  font-size:18px;font-weight:800;margin-bottom:12px;background:color-mix(in srgb, var(--accent) 35%, #fff);
+  color:var(--accent-ink)
+}
+.menu-card.soon .icon{background:var(--line);color:var(--muted)}
+.menu-card .title{font-size:15px;font-weight:800;margin:0 0 6px}
+.menu-card .desc{font-size:12px;color:var(--muted);margin:0;line-height:1.5;flex:1}
+.menu-card .tag{
+  display:inline-block;margin-top:12px;font-size:10.5px;font-weight:800;border-radius:999px;
+  padding:3px 9px;background:color-mix(in srgb, var(--lgreen) 18%, #fff);color:#067a34
+}
+.menu-card.soon .tag{background:var(--line);color:var(--muted)}
+.foot{text-align:center;font-size:10px;color:#9AA3AF;margin-top:18px}
+.user-pill{font-size:12px;color:var(--muted);font-weight:600}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <h1>CHARGE 管理TOP</h1>
+      <div class="sub">オーナー・店長用メニュー</div>
+    </div>
+    <div id="topActions"></div>
+  </div>
+  <div id="main"></div>
+  <div class="foot">top v1.0</div>
+</div>
+<script>
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxeXoT_E22dAyb_rz7hH0Q0_JeJqqhNJyV-VfGtvDpVjVZlEtUH4wxKUY8i64H66VFT/exec';
+const ADMIN_KEY_STORAGE = 'chargeAdminKey';
+
+const MENUS = [
+  {
+    id: 'shift',
+    title: 'シフト管理',
+    desc: '希望の確認・確定シフト編集・週次人件費・前月コピー',
+    href: 'admin.html',
+    icon: '📅',
+    ready: true
+  },
+  {
+    id: 'attendance',
+    title: '勤怠管理',
+    desc: '打刻集計・不整合チェック（準備中）',
+    href: '',
+    icon: '⏱',
+    ready: false
+  },
+  {
+    id: 'report',
+    title: '日報・連絡',
+    desc: '日報の確認とアラート（準備中）',
+    href: '',
+    icon: '📝',
+    ready: false
+  },
+  {
+    id: 'summary',
+    title: '集計レポート',
+    desc: '週次・月次の数字サマリー（準備中）',
+    href: '',
+    icon: '📊',
+    ready: false
+  }
+];
+
+function esc(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);
+  });
+}
+
+function hasKey(){
+  return !!(localStorage.getItem(ADMIN_KEY_STORAGE) || '').trim();
+}
+
+function render(){
+  const actions = document.getElementById('topActions');
+  const main = document.getElementById('main');
+  if(!hasKey()){
+    actions.innerHTML = '';
+    main.innerHTML =
+      '<div class="card">' +
+      '<p class="hint">管理キーでログインすると、各機能メニューが使えます。キーはこの端末に保存されます。</p>' +
+      '<div id="loginErr"></div>' +
+      '<div class="login-row">' +
+      '<input type="password" id="keyInput" placeholder="管理キー" autocomplete="current-password">' +
+      '<button type="button" class="btn primary" onclick="doLogin()">ログイン</button>' +
+      '</div></div>';
+    const inp = document.getElementById('keyInput');
+    inp.addEventListener('keydown', function(ev){ if(ev.key === 'Enter') doLogin(); });
+    inp.focus();
+    return;
+  }
+
+  actions.innerHTML =
+    '<span class="user-pill">管理者でログイン中</span> ' +
+    '<button type="button" class="btn" onclick="logout()">ログアウト</button>';
+
+  let html = '<p class="hint" style="margin:0 0 12px">使いたいメニューを選んでください。今後ここから各機能に増やしていきます。</p>';
+  html += '<div class="grid">';
+  MENUS.forEach(function(m){
+    if(m.ready){
+      html += '<button type="button" class="menu-card" onclick="location.href=\'' + esc(m.href) + '\'">' +
+        '<div class="icon">' + m.icon + '</div>' +
+        '<div class="title">' + esc(m.title) + '</div>' +
+        '<p class="desc">' + esc(m.desc) + '</p>' +
+        '<span class="tag">利用可能</span></button>';
+    } else {
+      html += '<button type="button" class="menu-card soon" disabled>' +
+        '<div class="icon">' + m.icon + '</div>' +
+        '<div class="title">' + esc(m.title) + '</div>' +
+        '<p class="desc">' + esc(m.desc) + '</p>' +
+        '<span class="tag">準備中</span></button>';
+    }
+  });
+  html += '</div>';
+  main.innerHTML = html;
+}
+
+function doLogin(){
+  const v = document.getElementById('keyInput').value.trim();
+  const err = document.getElementById('loginErr');
+  if(!v){
+    err.innerHTML = '<p class="err">管理キーを入力してください</p>';
+    return;
+  }
+  // 軽い疎通確認（キーがGASで通るか）
+  err.innerHTML = '<p class="hint">確認中…</p>';
+  localStorage.setItem(ADMIN_KEY_STORAGE, v);
+  fetch(GAS_API_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'boardData', userId: 'ADMIN', adminKey: v, year: new Date().getFullYear(), month: new Date().getMonth() + 1 })
+  })
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if(!j.ok){
+        localStorage.removeItem(ADMIN_KEY_STORAGE);
+        err.innerHTML = '<p class="err">' + esc(j.error || 'ログインに失敗しました') + '</p>';
+        return;
+      }
+      if(j.data && j.data.noPermission){
+        localStorage.removeItem(ADMIN_KEY_STORAGE);
+        err.innerHTML = '<p class="err">権限マスタに ADMIN が未登録です。⑥権限マスタを確認してください。</p>';
+        return;
+      }
+      render();
+    })
+    .catch(function(e){
+      localStorage.removeItem(ADMIN_KEY_STORAGE);
+      err.innerHTML = '<p class="err">接続エラー: ' + esc(e.message || e) + '</p>';
+    });
+}
+
+function logout(){
+  localStorage.removeItem(ADMIN_KEY_STORAGE);
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
