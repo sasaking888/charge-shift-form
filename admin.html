@@ -228,20 +228,21 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
   <div class="topnav" id="topnav" style="display:none">
     <div class="links">
       <a href="top.html">← 管理TOP</a>
-      <a href="admin.html?v=1.6" class="on">シフト管理</a>
+      <a href="#" id="navShift" class="on" onclick="setPage('shift'); return false;">シフト管理</a>
+      <a href="#" id="navStaff" onclick="setPage('staff'); return false;">スタッフ</a>
       <a href="cost.html?v=1.1">週次人件費</a>
       <a href="sales.html?v=2.7">売上表</a>
     </div>
     <div class="links">
-      <span class="crumb">編集・配置用</span>
+      <span class="crumb" id="navCrumb">編集・配置用</span>
       <button type="button" class="navbtn" onclick="logout()">ログアウト</button>
     </div>
   </div>
   <div class="banner" id="banner"></div>
   <div class="card" id="appHead" style="display:none">
     <div class="head">
-      <h1>シフト管理</h1>
-      <div class="mnav">
+      <h1 id="pageTitle">シフト管理</h1>
+      <div class="mnav" id="mnav">
         <button type="button" onclick="moveMonth(-1)">◀</button>
         <span class="mon" id="monLabel"></span>
         <button type="button" onclick="moveMonth(1)">▶</button>
@@ -253,7 +254,7 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
     <div class="tools" id="tools"></div>
   </div>
   <div id="content"><p class="msg">読み込み中…</p></div>
-  <div class="foot">shift-admin v1.6</div>
+  <div class="foot">shift-admin v1.7</div>
 </div>
 <script>
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxeXoT_E22dAyb_rz7hH0Q0_JeJqqhNJyV-VfGtvDpVjVZlEtUH4wxKUY8i64H66VFT/exec';
@@ -266,7 +267,9 @@ let cur = { y: 0, m: 0 };
 let storeId = null;
 let selDate = null;
 let selShiftId = null;
-let viewMode = 'month'; // month | week | day
+/** 画面の大区分: shift=シフト配置 / staff=スタッフ管理（月週日とは別） */
+let pageMode = 'shift'; // shift | staff
+let viewMode = 'month'; // month | week | day（pageMode===shift のときだけ）
 let weekIdx = 0;
 let inboxOpen = null; // null = auto
 let drag = null;
@@ -317,6 +320,11 @@ function boot(){
     location.href = 'top.html';
     return;
   }
+  // ?page=staff でスタッフ管理を直接開く
+  try {
+    const q = new URLSearchParams(location.search || '');
+    if(q.get('page') === 'staff') pageMode = 'staff';
+  } catch (e) {}
   document.getElementById('topnav').style.display = '';
   load();
 }
@@ -528,6 +536,22 @@ function monthDayList(){
 
 function render(){
   document.getElementById('monLabel').textContent = cur.y + '年' + cur.m + '月';
+
+  // 上ナビ: シフト管理 / スタッフ を分離
+  const navShift = document.getElementById('navShift');
+  const navStaff = document.getElementById('navStaff');
+  if(navShift && navStaff){
+    navShift.className = pageMode === 'shift' ? 'on' : '';
+    navStaff.className = pageMode === 'staff' ? 'on' : '';
+  }
+  const crumb = document.getElementById('navCrumb');
+  if(crumb) crumb.textContent = pageMode === 'staff' ? 'マスタ管理' : '編集・配置用';
+
+  const pageTitle = document.getElementById('pageTitle');
+  if(pageTitle) pageTitle.textContent = pageMode === 'staff' ? 'スタッフ管理' : 'シフト管理';
+  const mnav = document.getElementById('mnav');
+  if(mnav) mnav.style.display = pageMode === 'staff' ? 'none' : '';
+
   const tabs = document.getElementById('tabs');
   tabs.innerHTML = D.stores.map(s =>
     '<button type="button" class="' + (s.id === storeId ? 'on' : '') + '" onclick="switchStore(\'' + esc(s.id) + '\')">' +
@@ -538,47 +562,66 @@ function render(){
   if(st && !st.editable){ banner.style.display = 'block'; banner.textContent = 'この店舗は閲覧のみです（編集操作はできません）'; }
   else banner.style.display = 'none';
 
+  if(pageMode === 'staff'){
+    // スタッフ画面: 月次サマリ・月週日タブは出さない
+    document.getElementById('summary').innerHTML = '';
+    document.getElementById('modes').innerHTML = '';
+    document.getElementById('tools').innerHTML =
+      '<span class="hint" style="margin:0">店舗タブで対象店を切り替え。シフト配置は上の「シフト管理」へ。</span>';
+    document.getElementById('content').innerHTML = renderStaffPage();
+    return;
+  }
+
   const ms = statsForDays(monthDayList());
   document.getElementById('summary').innerHTML =
     '<div class="sum-card"><div class="k">今月の確定</div><div class="v">' + ms.count + '<span style="font-size:11px;font-weight:700">件</span></div></div>' +
     '<div class="sum-card"><div class="k">合計時間</div><div class="v">' + ms.hours + '<span style="font-size:11px;font-weight:700">h</span></div></div>' +
     '<div class="sum-card"><div class="k">概算人件費</div><div class="v sm">' + yen(ms.cost) + '</div></div>';
 
+  // 月 / 週 / 日 のみ（スタッフは上ナビ）
   document.getElementById('modes').innerHTML =
     '<button type="button" class="' + (viewMode === 'month' ? 'on' : '') + '" onclick="setView(\'month\')">月</button>' +
     '<button type="button" class="' + (viewMode === 'week' ? 'on' : '') + '" onclick="setView(\'week\')">週</button>' +
-    '<button type="button" class="' + (viewMode === 'day' ? 'on' : '') + '" onclick="setView(\'day\')">日</button>' +
-    '<button type="button" class="' + (viewMode === 'staff' ? 'on' : '') + '" onclick="setView(\'staff\')">スタッフ</button>';
+    '<button type="button" class="' + (viewMode === 'day' ? 'on' : '') + '" onclick="setView(\'day\')">日</button>';
 
   const tools = document.getElementById('tools');
-  if(viewMode === 'staff'){
-    tools.innerHTML = '';
-  } else {
-    let toolsHtml = '<a class="toolbtn" style="text-decoration:none;display:inline-block" href="cost.html">週次人件費を見る →</a>';
-    if(st && st.editable){
-      toolsHtml += '<button type="button" class="toolbtn primary" onclick="doCopyPrevMonth()">前月コピー</button>' +
-        '<span class="hint" style="margin:0">前月の確定をこの月へ（同日同人はスキップ）</span>';
-    }
-    tools.innerHTML = toolsHtml;
+  let toolsHtml = '<a class="toolbtn" style="text-decoration:none;display:inline-block" href="cost.html">週次人件費を見る →</a>';
+  if(st && st.editable){
+    toolsHtml += '<button type="button" class="toolbtn primary" onclick="doCopyPrevMonth()">前月コピー</button>' +
+      '<span class="hint" style="margin:0">前月の確定をこの月へ（同日同人はスキップ）</span>';
   }
+  tools.innerHTML = toolsHtml;
 
-  let html;
-  if(viewMode === 'staff'){
-    html = renderStaffPage();
-  } else {
-    html = renderInbox();
-    if(viewMode === 'month') html += renderCal();
-    else if(viewMode === 'week') html += renderWeekView();
-    else html += renderDay();
-  }
+  let html = renderInbox();
+  if(viewMode === 'month') html += renderCal();
+  else if(viewMode === 'week') html += renderWeekView();
+  else html += renderDay();
   document.getElementById('content').innerHTML = html;
   if(viewMode === 'day' && selDate) bindGantt();
 }
 
-function setView(mode){
-  if(mode === viewMode) return;
+/** シフト管理 ⇔ スタッフ管理（月週日とは別レイヤ） */
+function setPage(mode){
+  if(mode !== 'shift' && mode !== 'staff') return;
+  if(mode === pageMode) return;
   const pol = leaveDirtyPolicy();
   if(pol === 'cancel') return;
+  pageMode = mode;
+  staffEditing = null;
+  selShiftId = null;
+  if(mode === 'shift' && (viewMode !== 'month' && viewMode !== 'week' && viewMode !== 'day')){
+    viewMode = 'month';
+  }
+  if(pol === 'reload') load();
+  else render();
+}
+
+function setView(mode){
+  if(mode === 'staff'){ setPage('staff'); return; } // 旧リンク互換
+  if(mode === viewMode && pageMode === 'shift') return;
+  const pol = leaveDirtyPolicy();
+  if(pol === 'cancel') return;
+  pageMode = 'shift';
   viewMode = mode;
   staffEditing = null;
   if(mode === 'day' && !selDate){
