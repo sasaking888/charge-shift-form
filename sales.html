@@ -69,7 +69,7 @@ table.sales tfoot td{font-weight:800;border-top:1px solid var(--line);border-bot
       <a href="top.html">← 管理TOP</a>
       <a href="admin.html?v=1.5">シフト管理</a>
       <a href="cost.html?v=1.1">週次人件費</a>
-      <a href="sales.html?v=2.1" class="on">売上表</a>
+      <a href="sales.html?v=2.2" class="on">売上表</a>
     </div>
     <div class="links">
       <button type="button" class="navbtn" onclick="logout()">ログアウト</button>
@@ -92,7 +92,7 @@ table.sales tfoot td{font-weight:800;border-top:1px solid var(--line);border-bot
     </p>
   </div>
   <div id="content"><p class="msg">準備中…</p></div>
-  <div class="foot">sales v2.1 · スプシ変更は約2分で反映</div>
+  <div class="foot">sales v2.2 · スプシ変更は約2分で反映</div>
 </div>
 <script>
 // ===== 設定（ここだけ変えればOK） =====
@@ -135,6 +135,22 @@ function isSumCol(name){
   return /人数|客数|売上|現金|キャッシュ|税抜|回数券/.test(name) && name.indexOf('曜日') < 0;
 }
 function isMoneyCol(name){ return /売上|現金|キャッシュ|税抜|円/.test(name || ''); }
+function isUnitCol(name){ return !!(name && name.indexOf('単価') >= 0); }
+/** セル表示用。単価は小数なし整数 */
+function fmtCell(h, v){
+  if (v === '' || v == null) return '–';
+  if (isUnitCol(h)) {
+    const n = toNum(v);
+    return n === null ? '–' : Math.round(n).toLocaleString();
+  }
+  if (isSumCol(h)) {
+    const n = toNum(v);
+    if (n === null) return '–';
+    return isMoneyCol(h) ? yen(n) : Math.round(n).toLocaleString();
+  }
+  // 数値っぽい文字列（2467.5 など）も単価以外は従来どおり
+  return String(v);
+}
 
 function getWeeks(y, m){
   const dim = new Date(y, m, 0).getDate();
@@ -237,43 +253,75 @@ function load(silent){
       return;
     }
     const dt = res.getDataTable();
-    // ヘッダ
+    // ヘッダ（空列は捨てる）
     headers = [];
+    const colMap = []; // dataTable列 index
     for (let c = 0; c < dt.getNumberOfColumns(); c++) {
-      headers.push(String(dt.getColumnLabel(c) || '').trim());
+      const lab = String(dt.getColumnLabel(c) || '').trim();
+      if (!lab) continue;
+      headers.push(lab);
+      colMap.push(c);
     }
     // 日付列: 「7月」など
     let dateIdx = 0;
-    for (let c = 0; c < headers.length; c++) {
-      if (/^\d{1,2}月$/.test(headers[c]) || headers[c] === '日付') { dateIdx = c; break; }
+    for (let i = 0; i < headers.length; i++) {
+      if (/^\d{1,2}月$/.test(headers[i]) || headers[i] === '日付') { dateIdx = i; break; }
     }
+    const dateCol = colMap[dateIdx];
     const mPrefix = cur.y + '-' + String(cur.m).padStart(2, '0');
-    rows = [];
+    // シート下部に別表（日がもう一度並ぶ）があるため:
+    // 日次ブロックのあとに空日行が出たら本表終了。同じ日は先勝ち。
+    const byDay = {};
+    let inDaily = false;
+    let dailyDone = false;
     for (let r = 0; r < dt.getNumberOfRows(); r++) {
-      let dayRaw = dt.getValue(r, dateIdx);
+      let dayRaw = dt.getValue(r, dateCol);
       let dayNum = null;
-      if (typeof dayRaw === 'number') dayNum = dayRaw;
-      else if (dayRaw instanceof Date) dayNum = dayRaw.getDate();
-      else dayNum = parseInt(String(dayRaw || '').replace(/[^\d]/g, ''), 10);
-      if (!dayNum || dayNum < 1 || dayNum > 31) continue;
+      if (dayRaw === '' || dayRaw === null || dayRaw === undefined) {
+        dayNum = null;
+      } else if (typeof dayRaw === 'number') {
+        dayNum = dayRaw;
+      } else if (dayRaw instanceof Date) {
+        dayNum = dayRaw.getDate();
+      } else {
+        const s = String(dayRaw).trim();
+        if (!s) dayNum = null;
+        else dayNum = parseInt(s.replace(/[^\d]/g, ''), 10);
+      }
+      if (!dayNum || dayNum < 1 || dayNum > 31 || dayNum !== Math.floor(dayNum)) {
+        if (inDaily) dailyDone = true; // 合計行などで本表終了
+        continue;
+      }
+      if (dailyDone) continue; // 下部の別表は無視
+      if (byDay[dayNum]) continue; // 同日は先勝ち
+      inDaily = true;
 
       const values = {};
       let any = false;
-      for (let c = 0; c < headers.length; c++) {
-        if (!headers[c]) continue;
+      for (let i = 0; i < headers.length; i++) {
+        const c = colMap[i];
+        const h = headers[i];
         let v = dt.getValue(r, c);
-        if (v instanceof Date) v = (v.getMonth() + 1) + '/' + v.getDate(); // 表示用は簡易
+        if (v instanceof Date) v = (v.getMonth() + 1) + '/' + v.getDate();
         const fv = dt.getFormattedValue(r, c);
-        if (c !== dateIdx && fv !== '' && fv != null) any = true;
-        if (typeof v === 'number') values[headers[c]] = v;
-        else values[headers[c]] = fv;
+        if (i !== dateIdx && fv !== '' && fv != null) any = true;
+        // 単価は数値を丸めて保持（小数なし）
+        if (typeof v === 'number') {
+          values[h] = isUnitCol(h) ? Math.round(v) : v;
+        } else if (isUnitCol(h)) {
+          const n = toNum(fv);
+          values[h] = n === null ? fv : Math.round(n);
+        } else {
+          values[h] = fv;
+        }
       }
       if (!any) continue;
       const date = mPrefix + '-' + String(dayNum).padStart(2, '0');
       values['日付'] = date;
-      rows.push({ date: date, day: dayNum, values: values });
+      byDay[dayNum] = { date: date, day: dayNum, values: values };
     }
-    rows.sort(function(a, b){ return a.day - b.day; });
+    rows = Object.keys(byDay).map(function(k){ return byDay[k]; })
+      .sort(function(a, b){ return a.day - b.day; });
     render(name);
     setUpdated(true);
   });
@@ -313,20 +361,15 @@ function render(sheetNm){
 
   html += '<div class="table-wrap"><table class="sales"><thead><tr>';
   showHeaders.forEach(function(h){
-    html += '<th class="' + (isSumCol(h) ? 'r' : '') + '">' + esc(h) + '</th>';
+    html += '<th class="' + ((isSumCol(h) || isUnitCol(h)) ? 'r' : '') + '">' + esc(h) + '</th>';
   });
   html += '</tr></thead><tbody>';
   rows.forEach(function(r){
     html += '<tr>';
     showHeaders.forEach(function(h){
       if (h === '日付') { html += '<td>' + esc(r.date) + '</td>'; return; }
-      const v = r.values[h];
-      if (isSumCol(h)) {
-        const n = toNum(v);
-        html += '<td class="r">' + (n === null ? '–' : (isMoneyCol(h) ? yen(n) : Math.round(n).toLocaleString())) + '</td>';
-      } else {
-        html += '<td>' + esc(v === '' || v == null ? '–' : v) + '</td>';
-      }
+      const cls = (isSumCol(h) || isUnitCol(h)) ? ' class="r"' : '';
+      html += '<td' + cls + '>' + esc(fmtCell(h, r.values[h])) + '</td>';
     });
     html += '</tr>';
   });
@@ -336,6 +379,9 @@ function render(sheetNm){
     if (isSumCol(h)) {
       const t = sumField(h);
       html += '<td class="r">' + (t === null ? '–' : (isMoneyCol(h) ? yen(t) : Math.round(t).toLocaleString())) + '</td>';
+    } else if (isUnitCol(h)) {
+      // 単価の合計は出さない（意味が薄い）
+      html += '<td class="r">–</td>';
     } else html += '<td></td>';
   });
   html += '</tr></tfoot></table></div></div>';
