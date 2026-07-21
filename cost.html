@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<title>CHARGE 週次人件費</title>
+<style>
+:root{
+  --bg:#EEF1F6; --surface:#FFFFFF; --ink:#141B26; --muted:#5B6575;
+  --line:#D8DEE8; --accent:#FFC400; --accent-ink:#3A2E00; --lgreen:#06C755; --risk:#D45B6A; --blue:#3B7DD8;
+}
+*{box-sizing:border-box}
+body{margin:0;padding:12px;padding-bottom:32px;background:var(--bg);color:var(--ink);
+  font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;font-size:14px;line-height:1.55}
+.wrap{max-width:960px;margin:0 auto}
+.topnav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.topnav .links{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.topnav a,.topnav .navbtn{
+  display:inline-block;border:1px solid var(--line);background:var(--surface);border-radius:999px;
+  padding:5px 12px;font-size:12px;font-weight:700;color:var(--ink);text-decoration:none;font-family:inherit;cursor:pointer
+}
+.topnav a.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;
+  box-shadow:0 1px 2px rgba(20,27,38,.04);margin-bottom:12px}
+h1{font-size:17px;margin:0;font-weight:800}
+h2{font-size:13.5px;margin:0 0 10px;font-weight:700}
+.hint{font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.5}
+.msg{font-size:13px;color:var(--muted);text-align:center;margin:20px 0}
+.err{color:var(--risk)}
+.head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.mnav{display:flex;align-items:center;gap:8px}
+.mnav button{
+  border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 10px;
+  font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink)
+}
+.mnav .mon{font-weight:800;font-size:15px;min-width:6.5em;text-align:center}
+.tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;
+  padding:6px 14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.tabs button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.tabs button .tag{font-size:10px;font-weight:600;opacity:.85;margin-left:4px}
+.sum-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px}
+.sum-card{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center}
+.sum-card .k{font-size:10.5px;color:var(--muted);font-weight:600;margin-bottom:2px}
+.sum-card .v{font-size:16px;font-weight:800;color:var(--ink);word-break:break-all}
+.sum-card .v.sm{font-size:13.5px}
+.wtable{width:100%;border-collapse:collapse;font-size:13px}
+.wtable th{text-align:left;font-size:11px;color:var(--muted);font-weight:700;padding:0 8px 8px;border-bottom:1px solid var(--line)}
+.wtable th.r,.wtable td.r{text-align:right}
+.wtable td{padding:12px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.wtable tr:last-child td{border-bottom:0}
+.wtable tr.week-row{cursor:pointer}
+.wtable tr.week-row:hover{background:var(--bg)}
+.wtable tr.on td{background:color-mix(in srgb, var(--blue) 10%, #fff)}
+.wtable .wk{font-weight:800}
+.wtable .rng{font-size:11.5px;color:var(--muted);font-weight:600;margin-top:2px}
+.wtable tfoot td{font-weight:800;padding-top:12px;border-top:1px solid var(--line);border-bottom:0}
+.bar{height:6px;background:var(--line);border-radius:99px;margin-top:5px;overflow:hidden;max-width:100px;margin-left:auto}
+.bar > i{display:block;height:100%;background:var(--blue);border-radius:99px}
+.detail{margin-top:4px}
+.detail h2{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.detail .close{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.foot{text-align:center;font-size:10px;color:#9AA3AF;margin-top:10px}
+.banner{background:color-mix(in srgb, var(--accent) 22%, var(--surface));border:1px solid var(--accent);
+  border-radius:8px;padding:7px 10px;font-size:11.5px;margin-bottom:10px;display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topnav" id="topnav" style="display:none">
+    <div class="links">
+      <a href="top.html">← 管理TOP</a>
+      <a href="admin.html">シフト管理</a>
+      <a href="cost.html" class="on">週次人件費</a>
+    </div>
+    <div class="links">
+      <button type="button" class="navbtn" onclick="logout()">ログアウト</button>
+    </div>
+  </div>
+  <div class="banner" id="banner"></div>
+  <div class="card" id="appHead" style="display:none">
+    <div class="head">
+      <h1>週ごとの確定・人件費</h1>
+      <div class="mnav">
+        <button type="button" onclick="moveMonth(-1)">◀</button>
+        <span class="mon" id="monLabel"></span>
+        <button type="button" onclick="moveMonth(1)">▶</button>
+      </div>
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div class="sum-cards" id="summary"></div>
+  </div>
+  <div id="content"><p class="msg">読み込み中…</p></div>
+  <div class="foot">cost v1.0</div>
+</div>
+<script>
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxeXoT_E22dAyb_rz7hH0Q0_JeJqqhNJyV-VfGtvDpVjVZlEtUH4wxKUY8i64H66VFT/exec';
+const ADMIN_KEY_STORAGE = 'chargeAdminKey';
+
+let userId = 'ADMIN';
+let D = null;
+let cur = { y: 0, m: 0 };
+let storeId = null;
+let weekIdx = null; // null = 一覧のみ
+
+function api(payload){
+  payload.adminKey = localStorage.getItem(ADMIN_KEY_STORAGE) || '';
+  return fetch(GAS_API_URL, { method:'POST', body: JSON.stringify(payload) })
+    .then(function(r){ return r.text().then(function(t){ return { status: r.status, text: t }; }); })
+    .then(function(res){
+      var j;
+      try { j = JSON.parse(res.text); }
+      catch (e) {
+        throw new Error('サーバー応答が不正です (HTTP ' + res.status + ')');
+      }
+      if(!j.ok) throw new Error(j.error || 'サーバーエラー');
+      return j.data;
+    });
+}
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function yen(n){ return '¥' + Math.round(n).toLocaleString(); }
+function setMsg(t, isErr){
+  document.getElementById('content').innerHTML = '<div class="card"><p class="msg' + (isErr ? ' err' : '') + '">' + t + '</p></div>';
+}
+
+function boot(){
+  const now = new Date();
+  cur.y = now.getFullYear();
+  cur.m = now.getMonth() + 1; // 人件費は当月を見ることが多い
+  if(!localStorage.getItem(ADMIN_KEY_STORAGE)){
+    location.href = 'top.html';
+    return;
+  }
+  document.getElementById('topnav').style.display = '';
+  document.getElementById('appHead').style.display = '';
+  load();
+}
+
+function logout(){
+  localStorage.removeItem(ADMIN_KEY_STORAGE);
+  location.href = 'top.html';
+}
+
+function load(){
+  setMsg('データを読み込み中…');
+  api({ action:'boardData', userId: userId, year: cur.y, month: cur.m })
+    .then(function(d){
+      if(d.noPermission){
+        setMsg('管理者権限が未登録です。⑥権限マスタに ADMIN を追加してください。', true);
+        return;
+      }
+      D = d;
+      if(!storeId || !D.stores.some(s => s.id === storeId)) storeId = D.stores.length ? D.stores[0].id : null;
+      weekIdx = null;
+      render();
+    })
+    .catch(function(e){
+      if(String(e.message).indexOf('管理キー') >= 0){
+        localStorage.removeItem(ADMIN_KEY_STORAGE);
+        location.href = 'top.html';
+        return;
+      }
+      setMsg('読み込みエラー: ' + e.message, true);
+    });
+}
+
+function moveMonth(dir){
+  cur.m += dir;
+  if(cur.m < 1){ cur.m = 12; cur.y--; }
+  if(cur.m > 12){ cur.m = 1; cur.y++; }
+  weekIdx = null;
+  load();
+}
+
+function store(){ return D.stores.find(s => s.id === storeId); }
+function staffOf(id){ return D.staff.find(s => s.id === id) || { name: id, wage: 0 }; }
+function shiftsOn(dateStr){ return D.shifts.filter(s => s.storeId === storeId && s.date === dateStr); }
+function dstr(d){ return cur.y + '-' + String(cur.m).padStart(2,'0') + '-' + String(d).padStart(2,'0'); }
+function daysInMonth(){ return new Date(cur.y, cur.m, 0).getDate(); }
+function monDow(y, m, d){ return (new Date(y, m - 1, d).getDay() + 6) % 7; }
+
+function getWeeksOfMonth(){
+  const dim = daysInMonth();
+  const weeks = [];
+  let w = { days: [] };
+  for(let d = 1; d <= dim; d++){
+    const dow = monDow(cur.y, cur.m, d);
+    if(d > 1 && dow === 0){
+      weeks.push(w);
+      w = { days: [] };
+    }
+    w.days.push(d);
+  }
+  if(w.days.length) weeks.push(w);
+  weeks.forEach(function(wk, i){
+    wk.index = i;
+    wk.start = wk.days[0];
+    wk.end = wk.days[wk.days.length - 1];
+    wk.label = '第' + (i + 1) + '週';
+    wk.range = cur.m + '/' + wk.start + '〜' + cur.m + '/' + wk.end;
+  });
+  return weeks;
+}
+
+function statsForDays(dayNums){
+  let hours = 0, cost = 0, count = 0;
+  dayNums.forEach(function(d){
+    shiftsOn(dstr(d)).forEach(function(s){
+      count++;
+      const h = s.end - s.start;
+      hours += h;
+      cost += h * (Number(staffOf(s.staffId).wage) || 0);
+    });
+  });
+  return { hours: Math.round(hours * 10) / 10, cost: cost, count: count };
+}
+
+function monthDayList(){
+  const a = [];
+  for(let d = 1; d <= daysInMonth(); d++) a.push(d);
+  return a;
+}
+
+function personStats(dayNums){
+  const map = {};
+  dayNums.forEach(function(d){
+    shiftsOn(dstr(d)).forEach(function(s){
+      if(!map[s.staffId]) map[s.staffId] = { id: s.staffId, name: staffOf(s.staffId).name, hours: 0, cost: 0, count: 0, wage: Number(staffOf(s.staffId).wage) || 0 };
+      const h = s.end - s.start;
+      map[s.staffId].hours += h;
+      map[s.staffId].cost += h * (Number(staffOf(s.staffId).wage) || 0);
+      map[s.staffId].count++;
+    });
+  });
+  return Object.keys(map).map(function(k){
+    const p = map[k];
+    p.hours = Math.round(p.hours * 10) / 10;
+    return p;
+  }).sort(function(a,b){ return b.cost - a.cost; });
+}
+
+function render(){
+  document.getElementById('monLabel').textContent = cur.y + '年' + cur.m + '月';
+  document.getElementById('tabs').innerHTML = D.stores.map(function(s){
+    return '<button type="button" class="' + (s.id === storeId ? 'on' : '') + '" onclick="switchStore(\'' + esc(s.id) + '\')">' +
+      esc(s.name) + '<span class="tag">' + (s.editable ? '編集' : '閲覧') + '</span></button>';
+  }).join('');
+
+  const st = store();
+  const banner = document.getElementById('banner');
+  if(st && !st.editable){ banner.style.display = 'block'; banner.textContent = 'この店舗は閲覧のみです'; }
+  else banner.style.display = 'none';
+
+  const ms = statsForDays(monthDayList());
+  document.getElementById('summary').innerHTML =
+    '<div class="sum-card"><div class="k">今月の確定</div><div class="v">' + ms.count + '<span style="font-size:11px">件</span></div></div>' +
+    '<div class="sum-card"><div class="k">合計時間</div><div class="v">' + ms.hours + '<span style="font-size:11px">h</span></div></div>' +
+    '<div class="sum-card"><div class="k">概算人件費</div><div class="v sm">' + yen(ms.cost) + '</div></div>';
+
+  const weeks = getWeeksOfMonth();
+  const monthCost = ms.cost || 1;
+  let html = '<div class="card">';
+  html += '<h2>週一覧</h2>';
+  html += '<p class="hint">月曜始まり・当月の日のみ集計。金額は確定シフト×時給の概算です。行をタップすると人別内訳を表示します。</p>';
+  html += '<table class="wtable"><thead><tr>' +
+    '<th>週</th><th class="r">確定</th><th class="r">時間</th><th class="r">概算人件費</th></tr></thead><tbody>';
+  weeks.forEach(function(wk){
+    const stt = statsForDays(wk.days);
+    const pct = Math.min(100, Math.round((stt.cost / monthCost) * 100));
+    html += '<tr class="week-row' + (weekIdx === wk.index ? ' on' : '') + '" onclick="selectWeek(' + wk.index + ')">' +
+      '<td><div class="wk">' + esc(wk.label) + '</div><div class="rng">' + esc(wk.range) + '</div></td>' +
+      '<td class="r">' + stt.count + '件</td>' +
+      '<td class="r">' + stt.hours + 'h</td>' +
+      '<td class="r">' + yen(stt.cost) + '<div class="bar"><i style="width:' + pct + '%"></i></div></td></tr>';
+  });
+  html += '</tbody><tfoot><tr><td>月計</td><td class="r">' + ms.count + '件</td><td class="r">' +
+    ms.hours + 'h</td><td class="r">' + yen(ms.cost) + '</td></tr></tfoot></table></div>';
+
+  if(weekIdx != null && weeks[weekIdx]){
+    const wk = weeks[weekIdx];
+    const stt = statsForDays(wk.days);
+    const people = personStats(wk.days);
+    html += '<div class="card detail">';
+    html += '<h2><span>' + esc(wk.label) + '（' + esc(wk.range) + '）の人別</span>' +
+      '<button type="button" class="close" onclick="selectWeek(null)">閉じる</button></h2>';
+    html += '<p class="hint">確定 ' + stt.count + '件 · ' + stt.hours + 'h · ' + yen(stt.cost) + '</p>';
+    if(!people.length){
+      html += '<p class="msg">この週のシフトはありません</p>';
+    } else {
+      html += '<table class="wtable"><thead><tr><th>スタッフ</th><th class="r">件数</th><th class="r">時間</th><th class="r">時給</th><th class="r">概算人件費</th></tr></thead><tbody>';
+      people.forEach(function(p){
+        html += '<tr><td>' + esc(p.name) + '</td><td class="r">' + p.count + '</td><td class="r">' + p.hours + 'h</td>' +
+          '<td class="r">' + (p.wage ? yen(p.wage) : '–') + '</td><td class="r">' + yen(p.cost) + '</td></tr>';
+      });
+      html += '</tbody></table>';
+    }
+    html += '</div>';
+  }
+
+  // 月間人別
+  const monthPeople = personStats(monthDayList());
+  html += '<div class="card"><h2>今月の人別（参考）</h2>';
+  if(!monthPeople.length){
+    html += '<p class="msg">確定シフトがありません</p>';
+  } else {
+    html += '<table class="wtable"><thead><tr><th>スタッフ</th><th class="r">件数</th><th class="r">時間</th><th class="r">概算人件費</th></tr></thead><tbody>';
+    monthPeople.forEach(function(p){
+      html += '<tr><td>' + esc(p.name) + '</td><td class="r">' + p.count + '</td><td class="r">' + p.hours + 'h</td><td class="r">' + yen(p.cost) + '</td></tr>';
+    });
+    html += '</tbody></table>';
+  }
+  html += '</div>';
+
+  document.getElementById('content').innerHTML = html;
+}
+
+function switchStore(id){
+  storeId = id;
+  weekIdx = null;
+  render();
+}
+
+function selectWeek(i){
+  weekIdx = (i === null || weekIdx === i) ? null : i;
+  render();
+}
+
+boot();
+</script>
+</body>
+</html>

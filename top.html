@@ -70,7 +70,7 @@ body{margin:0;padding:20px 16px 40px;background:var(--bg);color:var(--ink);
     <div id="topActions"></div>
   </div>
   <div id="main"></div>
-  <div class="foot">top v1.0</div>
+  <div class="foot">top v1.1</div>
 </div>
 <script>
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxeXoT_E22dAyb_rz7hH0Q0_JeJqqhNJyV-VfGtvDpVjVZlEtUH4wxKUY8i64H66VFT/exec';
@@ -102,11 +102,19 @@ const MENUS = [
     ready: false
   },
   {
+    id: 'cost',
+    title: '週次人件費',
+    desc: '週ごとの確定件数・時間・概算人件費と人別内訳',
+    href: 'cost.html',
+    icon: '📊',
+    ready: true
+  },
+  {
     id: 'summary',
     title: '集計レポート',
     desc: '週次・月次の数字サマリー（準備中）',
     href: '',
-    icon: '📊',
+    icon: '📈',
     ready: false
   }
 ];

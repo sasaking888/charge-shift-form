@@ -199,9 +199,10 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
     <div class="links">
       <a href="top.html">← 管理TOP</a>
       <a href="admin.html" class="on">シフト管理</a>
+      <a href="cost.html">週次人件費</a>
     </div>
     <div class="links">
-      <span class="crumb">シフト専用ページ</span>
+      <span class="crumb">編集・配置用</span>
       <button type="button" class="navbtn" onclick="logout()">ログアウト</button>
     </div>
   </div>
@@ -221,7 +222,7 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
     <div class="tools" id="tools"></div>
   </div>
   <div id="content"><p class="msg">読み込み中…</p></div>
-  <div class="foot">shift-admin v1.1</div>
+  <div class="foot">shift-admin v1.2</div>
 </div>
 <script>
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxeXoT_E22dAyb_rz7hH0Q0_JeJqqhNJyV-VfGtvDpVjVZlEtUH4wxKUY8i64H66VFT/exec';
@@ -486,13 +487,15 @@ function render(){
     '<button type="button" class="' + (viewMode === 'day' ? 'on' : '') + '" onclick="setView(\'day\')">日</button>';
 
   const tools = document.getElementById('tools');
+  let toolsHtml = '<a class="toolbtn" style="text-decoration:none;display:inline-block" href="cost.html">週次人件費を見る →</a>';
   if(st && st.editable){
-    tools.innerHTML = '<button type="button" class="toolbtn primary" onclick="doCopyPrevMonth()">前月コピー</button>' +
-      '<span class="hint" style="margin:0">前月の確定をこの月へ（同日同人はスキップ）· 週は月曜始まり· 集計は当月の日のみ</span>';
-  } else tools.innerHTML = '';
+    toolsHtml += '<button type="button" class="toolbtn primary" onclick="doCopyPrevMonth()">前月コピー</button>' +
+      '<span class="hint" style="margin:0">前月の確定をこの月へ（同日同人はスキップ）</span>';
+  }
+  tools.innerHTML = toolsHtml;
 
   let html = renderInbox();
-  if(viewMode === 'month') html += renderWeekSummary() + renderCal();
+  if(viewMode === 'month') html += renderCal();
   else if(viewMode === 'week') html += renderWeekView();
   else html += renderDay();
   document.getElementById('content').innerHTML = html;
