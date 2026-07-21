@@ -86,14 +86,19 @@ table.sales tfoot td{font-weight:800;border-top:1px solid var(--line);border-bot
     <div class="sum-cards" id="summary"></div>
   </div>
   <div id="content"><p class="msg">読み込み中…</p></div>
-  <div class="foot">sales v1.0</div>
+  <div class="foot">sales v1.1</div>
 </div>
 <script>
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxeXoT_E22dAyb_rz7hH0Q0_JeJqqhNJyV-VfGtvDpVjVZlEtUH4wxKUY8i64H66VFT/exec';
 const ADMIN_KEY_STORAGE = 'chargeAdminKey';
 
-// サマリーに合計する列名（シートにあれば集計）
-const SUM_KEYS = ['客数', '売上金額', '現金', 'カード・その他', 'チケット・回数券'];
+// サマリー候補（ヘッダに含まれていれば合計）。既存スプシの列名に合わせて増やす
+const SUM_KEYS = [
+  '客数', '来客数', '組数', '人数',
+  '売上金額', '売上', '売上高', '合計', '総売上',
+  '現金', 'カード', 'カード・その他', 'クレジット', '電子マネー',
+  'チケット・回数券', 'チケット', '回数券'
+];
 
 let D = null;
 let cur = { y: 0, m: 0 };
@@ -244,8 +249,11 @@ function render(){
   let html = '';
   html += '<div class="card">';
   html += '<h2>日次明細</h2>';
-  html += '<p class="hint">スプレッドシート「' + esc(D.sheetName || '⑦売上データ') + '」を表示しています（編集はシート側）。' +
-    '列を増やせば自動で表に出ます。項目は後から相談して変更できます。</p>';
+  html += '<p class="hint">読み取り元: 「' + esc(D.sheetName || '（シート名未設定）') + '」' +
+    (D.spreadsheetId ? ' / ID …' + esc(String(D.spreadsheetId).slice(-8)) : '') +
+    '（編集は元スプシ側）。日付列=' + esc(D.dateHeader || '自動') +
+    (D.storeHeader ? ' / 店舗列=' + esc(D.storeHeader) : '') +
+    '。列はスプシの1行目ヘッダをそのまま表示します。</p>';
 
   if (!rows.length) {
     html += '<p class="msg">この月のデータがありません。シートに日付・店舗IDを入れて保存するとここに出ます。</p>';
