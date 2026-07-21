@@ -168,6 +168,16 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
 .day-actions .del{color:var(--risk)}
 .sel-info{font-size:12px;color:var(--muted);margin-top:8px;min-height:1.4em}
 .backlink{border:0;background:none;color:var(--blue);font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;padding:0;margin:0 0 8px}
+.g-block.dirty{box-shadow:0 0 0 2px var(--blue)}
+.savebar{
+  position:sticky;bottom:0;z-index:20;margin:12px -4px 0;padding:10px 12px;
+  background:color-mix(in srgb, var(--blue) 12%, var(--surface));border:1px solid var(--blue);
+  border-radius:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center
+}
+.savebar .txt{flex:1;font-size:12.5px;font-weight:700;color:var(--ink);min-width:8em}
+.savebar button{border:0;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit}
+.savebar .save{background:var(--lgreen);color:#fff}
+.savebar .discard{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -188,7 +198,7 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
     <div class="tools" id="tools"></div>
   </div>
   <div id="content"><p class="msg">読み込み中…</p></div>
-  <div class="foot">board v3.2-liff</div>
+  <div class="foot">board v3.3-liff</div>
 </div>
 <script>
 const LIFF_ID = '2010649060-38kc0rNy';
@@ -205,6 +215,8 @@ let viewMode = 'month'; // month | week | day
 let weekIdx = 0;
 let inboxOpen = null; // null = auto
 let drag = null;
+/** 未保存の変更: shiftId -> { start, end, staffId }（ドラッグは即APIせずここに溜める） */
+let pending = {};
 
 function api(payload){
   return fetch(GAS_API_URL, { method:'POST', body: JSON.stringify(payload) })
@@ -247,11 +259,73 @@ function boot(){
   }).catch(function(e){ if(!done){ done = true; setMsg('LIFF初期化エラー: ' + e.message, true); } });
 }
 
+function dirtyCount(){ return Object.keys(pending).length; }
+
+/** @returns {'ok'|'reload'|'cancel'} */
+function leaveDirtyPolicy(){
+  if(!dirtyCount()) return 'ok';
+  if(!confirm('未保存の変更が ' + dirtyCount() + ' 件あります。破棄して移動しますか？')) return 'cancel';
+  pending = {};
+  return 'reload'; // ローカル改変を捨ててサーバーから取り直す
+}
+
+function applyLocalShift(id, patch){
+  const s = D.shifts.find(x => x.id === id);
+  if(!s) return;
+  if(patch.start != null) s.start = patch.start;
+  if(patch.end != null) s.end = patch.end;
+  if(patch.staffId != null) s.staffId = patch.staffId;
+  if(!pending[id]) pending[id] = { start: s.start, end: s.end, staffId: s.staffId };
+  pending[id].start = s.start;
+  pending[id].end = s.end;
+  pending[id].staffId = s.staffId;
+  // 見た目用：調整済み寄りに
+  if(!s.changed || s.changed === '希望通り') s.changed = '調整済み';
+}
+
+function discardPending(){
+  if(!dirtyCount()) return;
+  if(!confirm('未保存の変更 ' + dirtyCount() + ' 件を破棄しますか？')) return;
+  pending = {};
+  load();
+}
+
+function savePending(){
+  const ids = Object.keys(pending);
+  if(!ids.length){ alert('保存する変更はありません'); return; }
+  if(!confirm(ids.length + ' 件の変更をまとめて保存します。よろしいですか？')) return;
+  setMsg('保存中…（' + ids.length + '件）');
+  let chain = Promise.resolve();
+  ids.forEach(function(id){
+    const p = pending[id];
+    chain = chain.then(function(){
+      return api({
+        action: 'updateShift',
+        userId: userId,
+        shiftId: id,
+        start: p.start,
+        end: p.end,
+        staffId: p.staffId
+      });
+    });
+  });
+  chain
+    .then(function(){
+      pending = {};
+      return load();
+    })
+    .catch(function(e){
+      alert('保存エラー: ' + e.message + '\n成功した分はそのままのことがあります。画面を再読み込みして確認してください。');
+      load();
+    });
+}
+
 function load(){
   setMsg('データを読み込み中…');
   api({ action:'boardData', userId: userId, year: cur.y, month: cur.m })
     .then(function(d){
       if(d.noPermission){
+        pending = {};
         document.getElementById('content').innerHTML =
           '<div class="card"><h2>アクセス権が未登録です</h2>' +
           '<p style="font-size:12.5px">スプレッドシートの「⑥権限マスタ」シートに、下のIDを貼り付けて登録してください（列: LINEユーザーID / 氏名 / 店舗ID / 権限レベル=編集可）。店舗ごとに1行ずつ。</p>' +
@@ -264,6 +338,7 @@ function load(){
         return;
       }
       D = d;
+      pending = {}; // サーバー最新に同期（未保存分は破棄）
       if(!storeId || !D.stores.some(s => s.id === storeId)) storeId = D.stores.length ? D.stores[0].id : null;
       const weeks = getWeeksOfMonth();
       if(weekIdx >= weeks.length) weekIdx = Math.max(0, weeks.length - 1);
@@ -273,6 +348,8 @@ function load(){
 }
 
 function moveMonth(dir){
+  const pol = leaveDirtyPolicy();
+  if(pol === 'cancel') return;
   cur.m += dir;
   if(cur.m < 1){ cur.m = 12; cur.y--; }
   if(cur.m > 12){ cur.m = 1; cur.y++; }
@@ -375,6 +452,9 @@ function render(){
 }
 
 function setView(mode){
+  if(mode === viewMode) return;
+  const pol = leaveDirtyPolicy();
+  if(pol === 'cancel') return;
   viewMode = mode;
   if(mode === 'day' && !selDate){
     const t = todayStr();
@@ -383,7 +463,6 @@ function setView(mode){
     else selDate = dstr(1);
   }
   if(mode === 'week'){
-    // 今日が当月ならその週、なければ 0
     const t = todayStr();
     const prefix = cur.y + '-' + String(cur.m).padStart(2,'0');
     if(t.indexOf(prefix) === 0){
@@ -394,10 +473,18 @@ function setView(mode){
     }
   }
   selShiftId = null;
-  render();
+  if(pol === 'reload') load();
+  else render();
 }
 
-function switchStore(id){ storeId = id; selDate = null; selShiftId = null; weekIdx = 0; render(); }
+function switchStore(id){
+  if(id === storeId) return;
+  const pol = leaveDirtyPolicy();
+  if(pol === 'cancel') return;
+  storeId = id; selDate = null; selShiftId = null; weekIdx = 0;
+  if(pol === 'reload') load();
+  else render();
+}
 
 function renderInbox(){
   const st = store();
@@ -455,6 +542,16 @@ function renderWeekSummary(){
 }
 
 function openWeek(i){
+  if(viewMode !== 'week' || weekIdx !== i){
+    const pol = leaveDirtyPolicy();
+    if(pol === 'cancel') return;
+    weekIdx = i;
+    viewMode = 'week';
+    selShiftId = null;
+    if(pol === 'reload') load();
+    else render();
+    return;
+  }
   weekIdx = i;
   viewMode = 'week';
   selShiftId = null;
@@ -489,21 +586,33 @@ function renderCal(){
 }
 
 function pickDay(ds){
+  if(ds !== selDate || viewMode !== 'day'){
+    const pol = leaveDirtyPolicy();
+    if(pol === 'cancel') return;
+    selDate = ds;
+    selShiftId = null;
+    viewMode = 'day';
+    const day = Number(ds.split('-')[2]);
+    const weeks = getWeeksOfMonth();
+    const idx = weeks.findIndex(w => w.days.indexOf(day) >= 0);
+    if(idx >= 0) weekIdx = idx;
+    if(pol === 'reload') load();
+    else render();
+    return;
+  }
   selDate = ds;
   selShiftId = null;
   viewMode = 'day';
-  // 週indexも合わせる
-  const day = Number(ds.split('-')[2]);
-  const weeks = getWeeksOfMonth();
-  const idx = weeks.findIndex(w => w.days.indexOf(day) >= 0);
-  if(idx >= 0) weekIdx = idx;
   render();
 }
 
 function moveWeek(dir){
+  const pol = leaveDirtyPolicy();
+  if(pol === 'cancel') return;
   const weeks = getWeeksOfMonth();
   weekIdx = Math.max(0, Math.min(weeks.length - 1, weekIdx + dir));
-  render();
+  if(pol === 'reload') load();
+  else render();
 }
 
 function renderWeekView(){
@@ -645,7 +754,7 @@ function renderDay(){
     '<span>確定 <b>' + dayStat.count + '</b>件</span>' +
     '<span>時間 <b>' + dayStat.hours + '</b>h</span>' +
     '<span>人件費 <b>' + yen(dayStat.cost) + '</b></span></div>';
-  html += '<p class="hint">右端ドラッグ＝終了時刻／上下＝担当変更。タップで選択→数値変更・削除。</p>';
+  html += '<p class="hint">右端＝終了時刻／上下＝担当変更。操作はすぐ反映せず<strong>下書き</strong>になります。終わったら「変更を保存」。</p>';
   html += '<div class="gwrap"><div class="gantt" id="gantt" style="--slot:' + SLOT_PX + 'px">';
 
   html += '<div class="g-head"><div class="g-label"></div><div class="g-track" style="width:' + trackW + 'px;min-width:' + trackW + 'px">';
@@ -667,9 +776,10 @@ function renderDay(){
       const left = (s.start - st.open) * 2 * SLOT_PX;
       const width = Math.max((s.end - s.start) * 2 * SLOT_PX, SLOT_PX);
       const adj = s.changed === '調整済み' || s.changed === '手動追加' || s.changed === '前月コピー';
-      html += '<div class="g-block' + (adj ? ' adj' : '') + (selShiftId === s.id ? ' sel' : '') +
+      const isDirty = !!pending[s.id];
+      html += '<div class="g-block' + (adj ? ' adj' : '') + (selShiftId === s.id ? ' sel' : '') + (isDirty ? ' dirty' : '') +
         '" data-id="' + esc(s.id) + '" style="left:' + left + 'px;width:' + width + 'px">' +
-        '<span class="g-txt">' + hLabel(s.start) + '〜' + hLabel(s.end) + '</span>' +
+        '<span class="g-txt">' + hLabel(s.start) + '〜' + hLabel(s.end) + (isDirty ? ' ·' : '') + '</span>' +
         (st.editable ? '<span class="g-rz" data-rz="1"></span>' : '') +
         '</div>';
     });
@@ -683,6 +793,12 @@ function renderDay(){
       '<button type="button" onclick="editSelectedShift()">時間を数値入力</button>' +
       '<button type="button" class="del" onclick="removeSelectedShift()">選択を削除</button></div>';
     html += '<div class="sel-info" id="selInfo">' + (selShiftId ? '選択中' : 'ブロックをタップして選択') + '</div>';
+    if(dirtyCount()){
+      html += '<div class="savebar">' +
+        '<div class="txt">未保存 ' + dirtyCount() + ' 件（まだサーバーに送っていません）</div>' +
+        '<button type="button" class="discard" onclick="discardPending()">破棄</button>' +
+        '<button type="button" class="save" onclick="savePending()">変更を保存</button></div>';
+    }
     html += '<div class="addform">' +
       '<select id="addStaff">' + storeStaff().map(s => '<option value="' + esc(s.id) + '">' + esc(s.name) + '</option>').join('') + '</select>' +
       '<select id="addStart">' + timeOpts(st.open, st.close - 0.5, st.open) + '</select><span>〜</span>' +
@@ -783,22 +899,23 @@ function onDragUp(e){
     return;
   }
 
+  // 即APIせずローカル下書きに反映（まとめて「変更を保存」）
   if(d.mode === 'resize' && d.previewEnd != null && d.previewEnd !== d.endH){
-    setMsg('時間を更新中…');
-    api({ action:'updateShift', userId: userId, shiftId: d.id, start: d.startH, end: d.previewEnd })
-      .then(load).catch(function(err){ alert('エラー: ' + err.message); load(); });
+    applyLocalShift(d.id, { start: d.startH, end: d.previewEnd });
+    render();
     return;
   }
   if(d.mode === 'move' && d.previewStaff && d.previewStaff !== d.staffId){
-    setMsg('担当を変更中…');
-    api({ action:'updateShift', userId: userId, shiftId: d.id, start: d.startH, end: d.endH, staffId: d.previewStaff })
-      .then(load).catch(function(err){ alert('エラー: ' + err.message); load(); });
+    applyLocalShift(d.id, { start: d.startH, end: d.endH, staffId: d.previewStaff });
+    render();
   }
 }
 
 function doCopyPrevMonth(){
   const st = store();
   if(!st || !st.editable) return;
+  const pol = leaveDirtyPolicy();
+  if(pol === 'cancel') return;
   if(!confirm(cur.y + '年' + cur.m + '月へ、前月の確定シフトをコピーします。\n同じ人・同じ日が既にある場合はスキップします。\n実行しますか？')) return;
   setMsg('前月コピー中…');
   api({ action:'copyPrevMonth', userId: userId, storeId: storeId, year: cur.y, month: cur.m })
@@ -847,14 +964,18 @@ function editShift(id){
   if(ne === null) return;
   const a = parseFloat(ns), b = parseFloat(ne);
   if(isNaN(a) || isNaN(b) || b <= a || a < st.open || b > st.close){ alert('時刻が正しくありません（営業時間 ' + hLabel(st.open) + '〜' + hLabel(st.close) + '）'); return; }
-  setMsg('更新中…');
-  api({ action:'updateShift', userId: userId, shiftId: id, start: a, end: b })
-    .then(load).catch(function(e){ alert('エラー: ' + e.message); load(); });
+  applyLocalShift(id, { start: a, end: b });
+  render();
 }
 function removeShift(id){
+  if(pending[id]){
+    // 未保存の変更だけならローカルから外すのは危険なので削除は即サーバー
+  }
+  if(dirtyCount() && !confirm('未保存の変更があります。削除はすぐサーバーに反映されます。続行しますか？')) return;
   if(!confirm('このシフトを削除しますか？（希望から反映したものは受信箱に戻ります）')) return;
   setMsg('削除中…');
   selShiftId = null;
+  delete pending[id];
   api({ action:'deleteShift', userId: userId, shiftId: id })
     .then(load).catch(function(e){ alert('エラー: ' + e.message); load(); });
 }
