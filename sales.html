@@ -8,58 +8,113 @@
 <script src="https://www.gstatic.com/charts/loader.js"></script>
 <style>
 :root{
-  --bg:#EEF1F6; --surface:#FFFFFF; --ink:#141B26; --muted:#5B6575;
-  --line:#D8DEE8; --blue:#3B7DD8; --risk:#D45B6A;
+  --bg:#F3F5F9; --surface:#FFFFFF; --ink:#121826; --muted:#6B7385;
+  --line:#E4E8F0; --line2:#EEF1F6; --blue:#3B7DD8; --blue-soft:#EAF2FC;
+  --risk:#D45B6A; --good:#1F9D63; --shadow:0 1px 2px rgba(18,24,38,.04),0 4px 14px rgba(18,24,38,.03);
+  --num:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
 }
 *{box-sizing:border-box}
-body{margin:0;padding:12px;padding-bottom:32px;background:var(--bg);color:var(--ink);
-  font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;font-size:14px;line-height:1.55}
-.wrap{max-width:1100px;margin:0 auto}
-.topnav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+body{margin:0;padding:14px;padding-bottom:40px;background:var(--bg);color:var(--ink);
+  font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;font-size:14px;line-height:1.5;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto}
+.topnav{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;flex-wrap:wrap}
 .topnav .links{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .topnav a,.topnav .navbtn{
   display:inline-block;border:1px solid var(--line);background:var(--surface);border-radius:999px;
-  padding:5px 12px;font-size:12px;font-weight:700;color:var(--ink);text-decoration:none;font-family:inherit;cursor:pointer
+  padding:6px 12px;font-size:12px;font-weight:700;color:var(--ink);text-decoration:none;font-family:inherit;cursor:pointer
 }
 .topnav a.on{background:var(--ink);border-color:var(--ink);color:#fff}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;
-  box-shadow:0 1px 2px rgba(20,27,38,.04);margin-bottom:12px}
-h1{font-size:17px;margin:0;font-weight:800}
-h2{font-size:13.5px;margin:0 0 10px;font-weight:700}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;
+  box-shadow:var(--shadow);margin-bottom:14px}
+h1{font-size:18px;margin:0;font-weight:800;letter-spacing:-.02em}
+h2{font-size:14px;margin:0 0 12px;font-weight:800;letter-spacing:-.01em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+h2 .sub{font-size:12px;font-weight:600;color:var(--muted)}
 .hint{font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.5}
-.msg{font-size:13px;color:var(--muted);text-align:center;margin:20px 0}
+.msg{font-size:13px;color:var(--muted);text-align:center;margin:24px 0}
 .err{color:var(--risk)}
-.head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:12px}
-.mnav{display:flex;align-items:center;gap:8px}
+.head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.mnav{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:4px}
 .mnav button{
-  border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:5px 10px;
-  font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink)
+  border:0;background:transparent;border-radius:8px;padding:6px 12px;
+  font-size:13px;cursor:pointer;font-family:inherit;color:var(--ink);font-weight:700
 }
-.mnav .mon{font-weight:800;font-size:15px;min-width:6.5em;text-align:center}
-.sum-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
-.sum-card{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px 8px;text-align:center}
-.sum-card .k{font-size:10.5px;color:var(--muted);font-weight:600;margin-bottom:2px}
-.sum-card .v{font-size:15px;font-weight:800;word-break:break-all}
-.table-wrap{overflow-x:auto}
-table.sales{width:100%;border-collapse:collapse;font-size:12.5px;min-width:640px}
-table.sales th{text-align:left;font-size:11px;color:var(--muted);font-weight:700;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--bg)}
-table.sales th.r,table.sales td.r{text-align:right}
-table.sales td{padding:9px 8px;border-bottom:1px solid var(--line)}
-table.sales tbody tr:hover{background:color-mix(in srgb, var(--blue) 6%, #fff)}
-table.sales tfoot td{font-weight:800;border-top:1px solid var(--line);border-bottom:0;padding-top:12px;background:var(--bg)}
-.wtable{width:100%;border-collapse:collapse;font-size:12.5px}
-.wtable th,.wtable td{padding:9px 8px;border-bottom:1px solid var(--line)}
-.wtable th{font-size:11px;color:var(--muted)}
-.wtable th.r,.wtable td.r{text-align:right}
-.foot{text-align:center;font-size:10px;color:#9AA3AF;margin-top:10px}
-.badge{display:inline-block;font-size:10px;font-weight:700;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:var(--muted)}
-.updated{font-size:11px;color:var(--muted);margin:8px 0 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.updated .dot{width:7px;height:7px;border-radius:50%;background:#3BBE7A;flex-shrink:0}
-.updated .dot.off{background:#9AA3AF}
+.mnav button:hover{background:var(--surface)}
+.mnav .mon{font-weight:800;font-size:14px;min-width:7em;text-align:center;padding:0 4px}
+/* KPI */
+.sum-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:720px){.sum-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.sum-card{
+  background:linear-gradient(180deg,#fff 0%,#F8FAFC 100%);
+  border:1px solid var(--line);border-radius:14px;padding:14px 12px;text-align:left;min-width:0
+}
+.sum-card.accent{border-color:#C9DCF5;background:linear-gradient(180deg,#F7FBFF 0%,#EEF5FC 100%)}
+.sum-card .k{font-size:11px;color:var(--muted);font-weight:700;margin-bottom:6px;letter-spacing:.02em}
+.sum-card .v{font-size:20px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.2;word-break:break-all}
+.sum-card .v.sm{font-size:17px}
+/* tables */
+.table-wrap{
+  overflow-x:auto;-webkit-overflow-scrolling:touch;
+  border:1px solid var(--line);border-radius:12px;background:#fff
+}
+table.sales,table.wtable{
+  width:100%;border-collapse:separate;border-spacing:0;
+  font-size:13px;font-variant-numeric:tabular-nums
+}
+table.sales{min-width:720px}
+table.sales th,table.wtable th{
+  text-align:left;font-size:11px;color:var(--muted);font-weight:700;
+  padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;
+  background:#F8FAFC;position:sticky;top:0;z-index:2;letter-spacing:.01em
+}
+table.sales th.r,table.sales td.r,table.wtable th.r,table.wtable td.r{text-align:right}
+table.sales td,table.wtable td{
+  padding:10px 12px;border-bottom:1px solid var(--line2);vertical-align:middle;white-space:nowrap
+}
+table.sales tbody tr:last-child td,table.wtable tbody tr:last-child td{border-bottom:0}
+table.sales tbody tr:hover,table.wtable tbody tr:hover{background:#F7FAFF}
+table.sales tbody tr.dim{opacity:.42}
+table.sales tbody tr.dim:hover{opacity:.7}
+table.sales td.date-cell{
+  position:sticky;left:0;z-index:1;background:#fff;font-weight:700;
+  border-right:1px solid var(--line2);min-width:5.5em
+}
+table.sales tbody tr:hover td.date-cell{background:#F7FAFF}
+table.sales th.date-cell{position:sticky;left:0;z-index:3;border-right:1px solid var(--line);min-width:5.5em}
+table.sales td.money,table.wtable td.money{font-weight:700;color:var(--ink)}
+table.sales td.main,table.wtable td.main{font-weight:800;color:#1a4f9c}
+table.sales td.muted,table.wtable td.muted{color:var(--muted);font-size:12.5px}
+table.sales tfoot td,table.wtable tfoot td{
+  font-weight:800;border-top:1px solid var(--line);border-bottom:0;
+  padding:12px;background:#F8FAFC
+}
+table.wtable{min-width:520px}
+table.wtable td.range{font-weight:700}
+.wx{font-size:14px;line-height:1}
+.toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.toolbar .left{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.chip{
+  display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;
+  color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px 9px
+}
+.toggle-btn{
+  border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;
+  font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--ink)
+}
+.toggle-btn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.detail-wrap{display:none;margin-top:12px}
+.detail-wrap.show{display:block}
+.foot{text-align:center;font-size:10px;color:#9AA3AF;margin-top:8px}
+.badge{display:inline-block;font-size:10px;font-weight:700;background:var(--blue-soft);border:1px solid #D0E3F8;border-radius:999px;padding:2px 8px;color:#2A5FA8}
+.updated{font-size:11px;color:var(--muted);margin:12px 0 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.updated .dot{width:7px;height:7px;border-radius:50%;background:var(--good);flex-shrink:0;box-shadow:0 0 0 3px rgba(31,157,99,.15)}
+.updated .dot.off{background:#9AA3AF;box-shadow:none}
 .updated button{
-  border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 10px;
-  font-size:11px;cursor:pointer;font-family:inherit;color:var(--ink)
+  border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:4px 10px;
+  font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--ink)
 }
+.updated button:hover{background:var(--bg)}
+.dash{color:#C0C6D0}
 </style>
 </head>
 <body>
@@ -69,7 +124,7 @@ table.sales tfoot td{font-weight:800;border-top:1px solid var(--line);border-bot
       <a href="top.html">← 管理TOP</a>
       <a href="admin.html?v=1.5">シフト管理</a>
       <a href="cost.html?v=1.1">週次人件費</a>
-      <a href="sales.html?v=2.4" class="on">売上表</a>
+      <a href="sales.html?v=2.5" class="on">売上表</a>
     </div>
     <div class="links">
       <button type="button" class="navbtn" onclick="logout()">ログアウト</button>
@@ -92,7 +147,7 @@ table.sales tfoot td{font-weight:800;border-top:1px solid var(--line);border-bot
     </p>
   </div>
   <div id="content"><p class="msg">準備中…</p></div>
-  <div class="foot">sales v2.4 · スプシ変更は約2分で反映</div>
+  <div class="foot">sales v2.5 · スプシ変更は約2分で反映</div>
 </div>
 <script>
 // ===== 設定（ここだけ変えればOK） =====
@@ -102,7 +157,21 @@ const ADMIN_KEY_STORAGE = 'chargeAdminKey';
 /** 自動再読込間隔（ミリ秒）。スプシを直したらこの時間以内に画面へ反映 */
 const AUTO_REFRESH_MS = 2 * 60 * 1000;
 
+/** 日次のメイン表示（この順）。それ以外は「詳細」に回す */
+const MAIN_COLS = ['施術人数','リピート客数','現金','キャッシュレス','総売上','単価','備考'];
 const SUM_HINTS = ['施術人数','施+回','リピート客数','リ+回','現金','キャッシュレス','総売上','税抜','回数券購入','回数券利用人数','回数券利用枚数'];
+const SHORT_LABEL = {
+  '施術人数':'施術',
+  'リピート客数':'リピ',
+  'キャッシュレス':'キャッシュ',
+  '総売上':'総売上',
+  '回数券利用人数':'券・人数',
+  '回数券利用枚数':'券・枚数',
+  '回数券購入':'券購入',
+  '割引チケット(チラシ)':'割引チラシ',
+  '割引チケット(アプリ)':'割引アプリ',
+  '施術売上(回数券購入抜き+回数券使用)':'施術売上'
+};
 
 let cur = { y: 0, m: 0 };
 let headers = [];
@@ -110,6 +179,7 @@ let rows = [];
 let loading = false;
 let refreshTimer = null;
 let lastOkAt = null;
+let showDetail = false;
 
 function esc(s){
   return String(s).replace(/[&<>"']/g, function(c){
@@ -136,20 +206,94 @@ function isSumCol(name){
 }
 function isMoneyCol(name){ return /売上|現金|キャッシュ|税抜|円/.test(name || ''); }
 function isUnitCol(name){ return !!(name && name.indexOf('単価') >= 0); }
+function isMetaCol(name){
+  if (!name) return true;
+  if (name === '日付' || name === '曜日' || name === '天気' || name === 'memo' || name === 'memo ') return true;
+  if (/^\d{1,2}月$/.test(name)) return true;
+  return false;
+}
+function shortLabel(h){ return SHORT_LABEL[h] || h; }
+function dash(){ return '<span class="dash">–</span>'; }
 /** セル表示用。単価は小数なし整数 */
 function fmtCell(h, v){
-  if (v === '' || v == null) return '–';
+  if (v === '' || v == null) return null;
   if (isUnitCol(h)) {
     const n = toNum(v);
-    return n === null ? '–' : Math.round(n).toLocaleString();
+    return n === null ? null : Math.round(n).toLocaleString();
   }
-  if (isSumCol(h)) {
+  if (isSumCol(h) || h === '新規') {
     const n = toNum(v);
-    if (n === null) return '–';
+    if (n === null) return null;
     return isMoneyCol(h) ? yen(n) : Math.round(n).toLocaleString();
   }
-  // 数値っぽい文字列（2467.5 など）も単価以外は従来どおり
-  return String(v);
+  const s = String(v).trim();
+  return s === '' ? null : s;
+}
+function cellHtml(h, v, extraClass){
+  const t = fmtCell(h, v);
+  const cls = [];
+  if (h !== '備考') cls.push('r');
+  if (extraClass) cls.push(extraClass);
+  if (h === '総売上') cls.push('main');
+  else if (isMoneyCol(h)) cls.push('money');
+  else if (isUnitCol(h) || h === '備考') cls.push('muted');
+  const c = cls.length ? ' class="' + cls.join(' ') + '"' : '';
+  if (t === null) return '<td' + c + '>' + dash() + '</td>';
+  return '<td' + c + '>' + esc(t) + '</td>';
+}
+function dayLabel(r){
+  const m = cur.m;
+  const wd = r.values['曜日'] ? String(r.values['曜日']).trim() : '';
+  return m + '/' + r.day + (wd ? '（' + wd + '）' : '');
+}
+function rowIsEmpty(r){
+  const sales = toNum(r.values['総売上']);
+  const guests = toNum(r.values['施術人数']);
+  if ((sales === null || sales === 0) && (guests === null || guests === 0)) return true;
+  return false;
+}
+function newOfRow(r){
+  const newKey = findHeader(['新規客数', '新規', '新規客', '新患']);
+  if (newKey) return toNum(r.values[newKey]);
+  const g = toNum(r.values['施術人数']);
+  const p = toNum(r.values['リピート客数']);
+  if (g === null && p === null) return null;
+  return Math.max(0, (g || 0) - (p || 0));
+}
+function mainColsPresent(){
+  return MAIN_COLS.filter(function(h){
+    if (h === '備考') return headers.indexOf('備考') >= 0 || headers.some(function(x){ return /^memo/i.test(x); });
+    return headers.indexOf(h) >= 0;
+  });
+}
+function detailColsPresent(){
+  const mainSet = {};
+  MAIN_COLS.forEach(function(h){ mainSet[h] = 1; });
+  return headers.filter(function(h){
+    if (!h || isMetaCol(h) || mainSet[h]) return false;
+    if (/^memo/i.test(h)) return false;
+    return true;
+  });
+}
+function valFor(r, h){
+  if (h === '備考') {
+    if (r.values['備考'] != null && String(r.values['備考']).trim() !== '') return r.values['備考'];
+    for (const k in r.values) {
+      if (/^memo/i.test(k) && r.values[k] != null && String(r.values[k]).trim() !== '') return r.values[k];
+    }
+    return '';
+  }
+  return r.values[h];
+}
+function toggleDetail(){
+  showDetail = !showDetail;
+  const wrap = document.getElementById('detailWrap');
+  const btn = document.getElementById('detailBtn');
+  if (wrap) wrap.classList.toggle('show', showDetail);
+  if (btn) {
+    btn.classList.toggle('on', showDetail);
+    btn.textContent = showDetail ? '詳細列を隠す' : '詳細列を表示';
+  }
 }
 
 function getWeeks(y, m){
@@ -336,70 +480,51 @@ function sumField(key){
   return any ? t : null;
 }
 
+function findHeader(cands){
+  for (let i = 0; i < cands.length; i++) {
+    if (headers.indexOf(cands[i]) >= 0) return cands[i];
+  }
+  return null;
+}
+
 function render(sheetNm){
-  let sumHtml = '';
-  headers.forEach(function(h){
-    if (!isSumCol(h)) return;
-    const t = sumField(h);
-    if (t === null) return;
-    sumHtml += '<div class="sum-card"><div class="k">' + esc(h) + '（月計）</div><div class="v">' +
-      (isMoneyCol(h) ? yen(t) : Math.round(t).toLocaleString()) + '</div></div>';
+  // --- KPI（主要4つだけ） ---
+  const guestT = sumField('施術人数');
+  const repT = sumField('リピート客数');
+  let newT = 0, anyNew = false;
+  rows.forEach(function(r){
+    const n = newOfRow(r);
+    if (n !== null) { newT += n; anyNew = true; }
   });
-  if (!sumHtml) sumHtml = '<div class="sum-card"><div class="k">行数</div><div class="v">' + rows.length + '</div></div>';
+  const salesT = sumField('総売上');
+  let sumHtml = '';
+  sumHtml += '<div class="sum-card accent"><div class="k">総売上（月）</div><div class="v">' +
+    (salesT === null ? '–' : yen(salesT)) + '</div></div>';
+  sumHtml += '<div class="sum-card"><div class="k">施術人数</div><div class="v">' +
+    (guestT === null ? '–' : Math.round(guestT).toLocaleString()) + '</div></div>';
+  sumHtml += '<div class="sum-card"><div class="k">新規</div><div class="v">' +
+    (anyNew ? Math.round(newT).toLocaleString() : '–') + '</div></div>';
+  sumHtml += '<div class="sum-card"><div class="k">リピーター</div><div class="v">' +
+    (repT === null ? '–' : Math.round(repT).toLocaleString()) + '</div></div>';
   document.getElementById('summary').innerHTML = sumHtml;
 
-  const showHeaders = ['日付'].concat(headers.filter(function(h){ return h && h !== '日付'; }));
-  let html = '<div class="card">';
-  html += '<h2>日次明細 · ' + esc(sheetNm) + ' · ' + esc(STORE_LABEL) + '</h2>';
-  html += '<p class="hint">元スプシを直すと自動で反映されます（約2分間隔・タブ復帰時・「今すぐ更新」）。週は月1日始まり（1–7が第1週）。</p>';
+  const mains = mainColsPresent();
+  const details = detailColsPresent();
+  const hasWeather = headers.indexOf('天気') >= 0;
 
-  if (!rows.length) {
-    html += '<p class="msg">この月のデータがありません。</p></div>';
-    document.getElementById('content').innerHTML = html;
-    return;
-  }
+  let html = '';
 
-  html += '<div class="table-wrap"><table class="sales"><thead><tr>';
-  showHeaders.forEach(function(h){
-    html += '<th class="' + ((isSumCol(h) || isUnitCol(h)) ? 'r' : '') + '">' + esc(h) + '</th>';
-  });
-  html += '</tr></thead><tbody>';
-  rows.forEach(function(r){
-    html += '<tr>';
-    showHeaders.forEach(function(h){
-      if (h === '日付') { html += '<td>' + esc(r.date) + '</td>'; return; }
-      const cls = (isSumCol(h) || isUnitCol(h)) ? ' class="r"' : '';
-      html += '<td' + cls + '>' + esc(fmtCell(h, r.values[h])) + '</td>';
-    });
-    html += '</tr>';
-  });
-  html += '</tbody><tfoot><tr>';
-  showHeaders.forEach(function(h, i){
-    if (i === 0) { html += '<td>合計</td>'; return; }
-    if (isSumCol(h)) {
-      const t = sumField(h);
-      html += '<td class="r">' + (t === null ? '–' : (isMoneyCol(h) ? yen(t) : Math.round(t).toLocaleString())) + '</td>';
-    } else if (isUnitCol(h)) {
-      // 単価の合計は出さない（意味が薄い）
-      html += '<td class="r">–</td>';
-    } else html += '<td></td>';
-  });
-  html += '</tr></tfoot></table></div></div>';
-
+  // --- 週一覧を上に（見やすいサマリ優先） ---
   const weeks = getWeeks(cur.y, cur.m);
   const moneyKey = headers.indexOf('総売上') >= 0 ? '総売上' : null;
   const guestKey = findHeader(['施術人数']);
   const repeatKey = findHeader(['リピート客数', 'リピーター', 'リピ客数']);
-  const newKey = findHeader(['新規客数', '新規', '新規客', '新患']);
 
-  html += '<div class="card"><h2>週一覧（月1日始まり）</h2>';
-  html += '<p class="hint">新規＝' + (newKey ? esc(newKey) : '施術人数 − リピート客数') +
-    '　／　リピーター＝' + esc(repeatKey || 'リピート客数') + '</p>';
-  html += '<table class="wtable"><thead><tr>';
-  html += '<th>期間</th>';
-  html += '<th class="r">施術人数</th>';
-  html += '<th class="r">新規</th><th class="r">リピーター</th>';
-  if (moneyKey) html += '<th class="r">' + esc(moneyKey) + '</th>';
+  html += '<div class="card">';
+  html += '<h2>週一覧 <span class="sub">月1日始まり · ' + esc(STORE_LABEL) + '</span></h2>';
+  html += '<div class="table-wrap"><table class="wtable"><thead><tr>';
+  html += '<th>期間</th><th class="r">施術</th><th class="r">新規</th><th class="r">リピ</th>';
+  if (moneyKey) html += '<th class="r">総売上</th>';
   html += '</tr></thead><tbody>';
 
   weeks.forEach(function(wk){
@@ -409,15 +534,9 @@ function render(sheetNm){
     wrows.forEach(function(r){
       const guests = guestKey ? toNum(r.values[guestKey]) : null;
       const rpts = repeatKey ? toNum(r.values[repeatKey]) : null;
-      const news = newKey ? toNum(r.values[newKey]) : null;
+      const news = newOfRow(r);
       if (guests !== null) { guestsSum += guests; anyG = true; }
       if (news !== null) { neu += news; anyN = true; }
-      else if (guests !== null || rpts !== null) {
-        const g = guests !== null ? guests : 0;
-        const p = rpts !== null ? rpts : 0;
-        neu += Math.max(0, g - p);
-        anyN = true;
-      }
       if (rpts !== null) { rep += rpts; anyR = true; }
       if (moneyKey) {
         const s = toNum(r.values[moneyKey]);
@@ -425,24 +544,104 @@ function render(sheetNm){
       }
     });
     html += '<tr>';
-    html += '<td><b>' + esc(wk.range) + '</b></td>';
-    html += '<td class="r">' + (anyG ? Math.round(guestsSum).toLocaleString() : '–') + '</td>';
-    html += '<td class="r">' + (anyN ? Math.round(neu).toLocaleString() : '–') + '</td>';
-    html += '<td class="r">' + (anyR ? Math.round(rep).toLocaleString() : '–') + '</td>';
-    if (moneyKey) html += '<td class="r">' + (anyS ? yen(sales) : '–') + '</td>';
+    html += '<td class="range">' + esc(wk.range) + '</td>';
+    html += '<td class="r">' + (anyG ? Math.round(guestsSum).toLocaleString() : dash()) + '</td>';
+    html += '<td class="r">' + (anyN ? Math.round(neu).toLocaleString() : dash()) + '</td>';
+    html += '<td class="r">' + (anyR ? Math.round(rep).toLocaleString() : dash()) + '</td>';
+    if (moneyKey) html += '<td class="r main">' + (anyS ? yen(sales) : dash()) + '</td>';
     html += '</tr>';
   });
-  html += '</tbody></table></div>';
+  html += '</tbody></table></div></div>';
 
-  document.getElementById('content').innerHTML = html;
-}
-
-/** ヘッダ名の候補から最初に一致するもの */
-function findHeader(cands){
-  for (let i = 0; i < cands.length; i++) {
-    if (headers.indexOf(cands[i]) >= 0) return cands[i];
+  // --- 日次 ---
+  html += '<div class="card">';
+  html += '<div class="toolbar"><div class="left">';
+  html += '<h2 style="margin:0">日次 <span class="sub">' + esc(sheetNm) + '</span></h2>';
+  html += '<span class="chip">' + rows.length + '日</span>';
+  html += '</div>';
+  if (details.length) {
+    html += '<button type="button" class="toggle-btn' + (showDetail ? ' on' : '') +
+      '" id="detailBtn" onclick="toggleDetail()">' +
+      (showDetail ? '詳細列を隠す' : '詳細列を表示') + '</button>';
   }
-  return null;
+  html += '</div>';
+
+  if (!rows.length) {
+    html += '<p class="msg">この月のデータがありません。</p></div>';
+    document.getElementById('content').innerHTML = html;
+    return;
+  }
+
+  // main table
+  html += '<div class="table-wrap"><table class="sales"><thead><tr>';
+  html += '<th class="date-cell">日付</th>';
+  if (hasWeather) html += '<th>天気</th>';
+  html += '<th class="r">新規</th>';
+  mains.forEach(function(h){
+    html += '<th class="r">' + esc(shortLabel(h)) + '</th>';
+  });
+  html += '</tr></thead><tbody>';
+
+  rows.forEach(function(r){
+    const dim = rowIsEmpty(r) ? ' class="dim"' : '';
+    html += '<tr' + dim + '>';
+    html += '<td class="date-cell">' + esc(dayLabel(r)) + '</td>';
+    if (hasWeather) {
+      const wx = r.values['天気'];
+      html += '<td class="wx">' + (wx && String(wx).trim() ? esc(String(wx).trim()) : dash()) + '</td>';
+    }
+    const nv = newOfRow(r);
+    html += '<td class="r">' + (nv === null ? dash() : Math.round(nv).toLocaleString()) + '</td>';
+    mains.forEach(function(h){
+      html += cellHtml(h, valFor(r, h));
+    });
+    html += '</tr>';
+  });
+
+  // footer totals for main
+  html += '</tbody><tfoot><tr>';
+  html += '<td class="date-cell">合計</td>';
+  if (hasWeather) html += '<td></td>';
+  html += '<td class="r">' + (anyNew ? Math.round(newT).toLocaleString() : dash()) + '</td>';
+  mains.forEach(function(h){
+    if (isUnitCol(h) || h === '備考') {
+      html += '<td class="r muted">' + dash() + '</td>';
+      return;
+    }
+    if (isSumCol(h)) {
+      const t = sumField(h);
+      const cls = h === '総売上' ? 'r main' : (isMoneyCol(h) ? 'r money' : 'r');
+      html += '<td class="' + cls + '">' + (t === null ? dash() : (isMoneyCol(h) ? yen(t) : Math.round(t).toLocaleString())) + '</td>';
+    } else {
+      html += '<td class="r">' + dash() + '</td>';
+    }
+  });
+  html += '</tr></tfoot></table></div>';
+
+  // detail table
+  if (details.length) {
+    html += '<div class="detail-wrap' + (showDetail ? ' show' : '') + '" id="detailWrap">';
+    html += '<p class="hint" style="margin-top:14px;margin-bottom:8px">スプシのその他の列</p>';
+    html += '<div class="table-wrap"><table class="sales"><thead><tr>';
+    html += '<th class="date-cell">日付</th>';
+    details.forEach(function(h){
+      html += '<th class="r">' + esc(shortLabel(h)) + '</th>';
+    });
+    html += '</tr></thead><tbody>';
+    rows.forEach(function(r){
+      const dim = rowIsEmpty(r) ? ' class="dim"' : '';
+      html += '<tr' + dim + '>';
+      html += '<td class="date-cell">' + esc(dayLabel(r)) + '</td>';
+      details.forEach(function(h){
+        html += cellHtml(h, r.values[h]);
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table></div></div>';
+  }
+
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
 }
 
 boot();
