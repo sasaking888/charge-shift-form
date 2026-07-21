@@ -156,8 +156,21 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
 .g-block{position:absolute;top:4px;bottom:4px;border-radius:6px;background:var(--accent);color:var(--accent-ink);
   font-size:10px;font-weight:700;padding:0 6px 0 8px;display:flex;align-items:center;overflow:hidden;
   box-shadow:0 1px 2px rgba(0,0,0,.08);cursor:grab;user-select:none;touch-action:none;z-index:2}
-.g-block.adj{background:color-mix(in srgb, var(--blue) 35%, var(--accent))}
-.g-block.sel{outline:2px solid var(--blue);outline-offset:1px}
+.g-block.adj{/* スタッフ色を優先。調整済みは縞で示す */
+  background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.18) 0 4px,transparent 4px 8px)}
+.g-block.sel{outline:2px solid var(--ink);outline-offset:1px;z-index:3}
+.g-label .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;flex:0 0 auto}
+.day-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px;flex-wrap:wrap}
+.day-nav .ttl{font-size:15px;font-weight:800;margin:0}
+.day-nav .navs{display:flex;align-items:center;gap:6px}
+.day-nav button{
+  border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 12px;
+  font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--ink)
+}
+.day-nav button:disabled{opacity:.4;cursor:not-allowed}
+.legend{display:flex;flex-wrap:wrap;gap:8px 12px;margin:0 0 10px;font-size:11px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:4px;font-weight:600}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px}
 .g-block .g-txt{pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 .g-block .g-rz{position:absolute;right:0;top:0;bottom:0;width:14px;cursor:ew-resize;
   background:linear-gradient(90deg,transparent,rgba(0,0,0,.12));border-radius:0 6px 6px 0}
@@ -222,7 +235,7 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
     <div class="tools" id="tools"></div>
   </div>
   <div id="content"><p class="msg">読み込み中…</p></div>
-  <div class="foot">shift-admin v1.2</div>
+  <div class="foot">shift-admin v1.3</div>
 </div>
 <script>
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxeXoT_E22dAyb_rz7hH0Q0_JeJqqhNJyV-VfGtvDpVjVZlEtUH4wxKUY8i64H66VFT/exec';
@@ -409,6 +422,31 @@ function moveMonth(dir){
 
 function store(){ return D.stores.find(s => s.id === storeId); }
 function staffOf(id){ return D.staff.find(s => s.id === id) || { name: id, wage: 0 }; }
+
+/** 店舗内スタッフごとに安定した色（IDハッシュ） */
+const STAFF_PALETTE = [
+  { bg: '#FFC400', fg: '#3A2E00' },
+  { bg: '#5B9BD5', fg: '#ffffff' },
+  { bg: '#70AD47', fg: '#ffffff' },
+  { bg: '#ED7D31', fg: '#ffffff' },
+  { bg: '#9B7EBD', fg: '#ffffff' },
+  { bg: '#00B0A6', fg: '#ffffff' },
+  { bg: '#E84A5F', fg: '#ffffff' },
+  { bg: '#4A90A4', fg: '#ffffff' },
+  { bg: '#F4A261', fg: '#3A2E00' },
+  { bg: '#6C63FF', fg: '#ffffff' },
+  { bg: '#2A9D8F', fg: '#ffffff' },
+  { bg: '#E76F51', fg: '#ffffff' },
+  { bg: '#457B9D', fg: '#ffffff' },
+  { bg: '#E9C46A', fg: '#3A2E00' },
+  { bg: '#8D99AE', fg: '#ffffff' }
+];
+function staffColor(staffId){
+  let h = 0;
+  const s = String(staffId || '');
+  for(let i = 0; i < s.length; i++) h = ((h * 31) + s.charCodeAt(i)) >>> 0;
+  return STAFF_PALETTE[h % STAFF_PALETTE.length];
+}
 function shiftsOn(dateStr){ return D.shifts.filter(s => s.storeId === storeId && s.date === dateStr); }
 function dstr(d){ return cur.y + '-' + String(cur.m).padStart(2,'0') + '-' + String(d).padStart(2,'0'); }
 function storeStaff(){ return D.staff.filter(s => s.storeId === storeId); }
@@ -778,6 +816,31 @@ function slotsOf(st){
   return slots;
 }
 
+function moveDay(dir){
+  if(!selDate) return;
+  const pol = leaveDirtyPolicy();
+  if(pol === 'cancel') return;
+  const parts = selDate.split('-').map(Number);
+  const dt = new Date(parts[0], parts[1] - 1, parts[2] + dir);
+  const ny = dt.getFullYear();
+  const nm = dt.getMonth() + 1;
+  const nd = dt.getDate();
+  const needMonthLoad = (ny !== cur.y || nm !== cur.m);
+  cur.y = ny;
+  cur.m = nm;
+  selDate = ny + '-' + String(nm).padStart(2, '0') + '-' + String(nd).padStart(2, '0');
+  selShiftId = null;
+  viewMode = 'day';
+  if(needMonthLoad || pol === 'reload'){
+    load();
+    return;
+  }
+  const weeks = getWeeksOfMonth();
+  const idx = weeks.findIndex(function(w){ return w.days.indexOf(nd) >= 0; });
+  if(idx >= 0) weekIdx = idx;
+  render();
+}
+
 function renderDay(){
   if(!selDate){
     return '<div class="card"><p class="msg">日付が選ばれていません。月または週から日付を選んでください。</p>' +
@@ -793,19 +856,38 @@ function renderDay(){
     if(!staffRows.some(x => x.id === s.staffId)) staffRows.push(staffOf(s.staffId));
   });
   const dayStat = statsForDays([Number(dParts[2])]);
+  const wnames = ['日','月','火','水','木','金','土'];
+  const dow = new Date(Number(dParts[0]), Number(dParts[1]) - 1, Number(dParts[2])).getDay();
+  const dayTitle = Number(dParts[1]) + '月' + Number(dParts[2]) + '日（' + wnames[dow] + '）';
 
   const counts = slots.map(function(t){
     return list.filter(s => s.start <= t && s.end > t).length;
   });
 
   let html = '<div class="card">';
-  html += '<button type="button" class="backlink" onclick="setView(\'week\')">← 週ビューに戻る</button>';
-  html += '<h2>' + Number(dParts[1]) + '月' + Number(dParts[2]) + '日 ガント（' + esc(st.name) + '）</h2>';
+  html += '<div class="day-nav">';
+  html += '<div class="navs">' +
+    '<button type="button" onclick="moveDay(-1)">◀ 前日</button>' +
+    '<button type="button" onclick="moveDay(1)">翌日 ▶</button></div>';
+  html += '<h2 class="ttl">' + dayTitle + ' · ' + esc(st.name) + '</h2>';
+  html += '<div class="navs">' +
+    '<button type="button" onclick="setView(\'week\')">週</button>' +
+    '<button type="button" onclick="setView(\'month\')">月</button></div>';
+  html += '</div>';
   html += '<div class="week-sum" style="margin:0 0 10px">' +
     '<span>確定 <b>' + dayStat.count + '</b>件</span>' +
     '<span>時間 <b>' + dayStat.hours + '</b>h</span>' +
     '<span>人件費 <b>' + yen(dayStat.cost) + '</b></span></div>';
-  html += '<p class="hint">右端＝終了時刻／上下＝担当変更。操作はすぐ反映せず<strong>下書き</strong>になります。終わったら「変更を保存」。</p>';
+  // 色凡例
+  if(staffRows.length){
+    html += '<div class="legend">';
+    staffRows.forEach(function(sf){
+      const col = staffColor(sf.id);
+      html += '<span><i style="background:' + col.bg + '"></i>' + esc(sf.name) + '</span>';
+    });
+    html += '</div>';
+  }
+  html += '<p class="hint">◀翌日▶で日付移動。バーはスタッフごとに色分け。右端＝終了／上下＝担当。変更は下書き→「変更を保存」。</p>';
   html += '<div class="gwrap"><div class="gantt" id="gantt" style="--slot:' + SLOT_PX + 'px">';
 
   html += '<div class="g-head"><div class="g-label"></div><div class="g-track" style="width:' + trackW + 'px;min-width:' + trackW + 'px">';
@@ -821,7 +903,9 @@ function renderDay(){
   html += '</div></div>';
 
   staffRows.forEach(function(sf){
-    html += '<div class="g-row" data-staff-id="' + esc(sf.id) + '"><div class="g-label">' + esc(sf.name) + '</div>';
+    const col = staffColor(sf.id);
+    html += '<div class="g-row" data-staff-id="' + esc(sf.id) + '">' +
+      '<div class="g-label"><span class="dot" style="background:' + col.bg + '"></span>' + esc(sf.name) + '</div>';
     html += '<div class="g-track" style="width:' + trackW + 'px;min-width:' + trackW + 'px" data-staff-id="' + esc(sf.id) + '">';
     list.filter(s => s.staffId === sf.id).forEach(function(s){
       const left = (s.start - st.open) * 2 * SLOT_PX;
@@ -829,7 +913,7 @@ function renderDay(){
       const adj = s.changed === '調整済み' || s.changed === '手動追加' || s.changed === '前月コピー';
       const isDirty = !!pending[s.id];
       html += '<div class="g-block' + (adj ? ' adj' : '') + (selShiftId === s.id ? ' sel' : '') + (isDirty ? ' dirty' : '') +
-        '" data-id="' + esc(s.id) + '" style="left:' + left + 'px;width:' + width + 'px">' +
+        '" data-id="' + esc(s.id) + '" style="left:' + left + 'px;width:' + width + 'px;background:' + col.bg + ';color:' + col.fg + '">' +
         '<span class="g-txt">' + hLabel(s.start) + '〜' + hLabel(s.end) + (isDirty ? ' ·' : '') + '</span>' +
         (st.editable ? '<span class="g-rz" data-rz="1"></span>' : '') +
         '</div>';
