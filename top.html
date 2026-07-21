@@ -70,7 +70,7 @@ body{margin:0;padding:20px 16px 40px;background:var(--bg);color:var(--ink);
     <div id="topActions"></div>
   </div>
   <div id="main"></div>
-  <div class="foot">top v1.2</div>
+  <div class="foot">top v1.3</div>
 </div>
 <script>
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxeXoT_E22dAyb_rz7hH0Q0_JeJqqhNJyV-VfGtvDpVjVZlEtUH4wxKUY8i64H66VFT/exec';
@@ -107,6 +107,14 @@ const MENUS = [
     desc: '週ごとの確定件数・時間・概算人件費と人別内訳',
     href: 'cost.html?v=1.1',
     icon: '📊',
+    ready: true
+  },
+  {
+    id: 'sales',
+    title: '売上表',
+    desc: '日次の客数・売上など（スプシ⑦を表示）',
+    href: 'sales.html?v=1.0',
+    icon: '💰',
     ready: true
   },
   {
