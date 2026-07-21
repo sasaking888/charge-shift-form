@@ -115,6 +115,22 @@ table.wtable td.range{font-weight:700}
 }
 .updated button:hover{background:var(--bg)}
 .dash{color:#C0C6D0}
+/* store tabs */
+.store-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px}
+.store-tabs button{
+  border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;
+  font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;color:var(--ink)
+}
+.store-tabs button:hover{background:var(--bg)}
+.store-tabs button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.store-tabs button:disabled{opacity:.45;cursor:not-allowed}
+.setup-box{
+  background:var(--bg);border:1px dashed var(--line);border-radius:12px;padding:18px 16px;text-align:left
+}
+.setup-box p{margin:0 0 8px;font-size:13px;color:var(--muted);line-height:1.55}
+.setup-box p:last-child{margin:0}
+.setup-box b{color:var(--ink)}
+.setup-box code{font-size:12px;background:#fff;border:1px solid var(--line);border-radius:6px;padding:1px 6px}
 </style>
 </head>
 <body>
@@ -124,7 +140,7 @@ table.wtable td.range{font-weight:700}
       <a href="top.html">← 管理TOP</a>
       <a href="admin.html?v=1.5">シフト管理</a>
       <a href="cost.html?v=1.1">週次人件費</a>
-      <a href="sales.html?v=2.5" class="on">売上表</a>
+      <a href="sales.html?v=2.6" class="on">売上表</a>
     </div>
     <div class="links">
       <button type="button" class="navbtn" onclick="logout()">ログアウト</button>
@@ -139,6 +155,7 @@ table.wtable td.range{font-weight:700}
         <button type="button" onclick="moveMonth(1)">▶</button>
       </div>
     </div>
+    <div class="store-tabs" id="storeTabs"></div>
     <div class="sum-cards" id="summary"></div>
     <p class="updated" id="updatedLine">
       <span class="dot off" id="liveDot"></span>
@@ -147,14 +164,27 @@ table.wtable td.range{font-weight:700}
     </p>
   </div>
   <div id="content"><p class="msg">準備中…</p></div>
-  <div class="foot">sales v2.5 · スプシ変更は約2分で反映</div>
+  <div class="foot">sales v2.6 · 店舗切替対応</div>
 </div>
 <script>
-// ===== 設定（ここだけ変えればOK） =====
-const SALES_SS_ID = '1tkaQzpRwSehJwl4tfZVqARGxORHjxY3g1XM7A1bkdwo';
-const STORE_LABEL = 'K1';
+// ===== 設定（店舗ごとにスプシIDを入れる） =====
+// ssId: スプシURLの /d/XXXX/ の XXXX。空だと「未接続」表示。
+// 共有: リンクを知っている全員が閲覧可
+const STORES = [
+  {
+    id: 'K1',
+    name: '吉祥寺',
+    ssId: '1tkaQzpRwSehJwl4tfZVqARGxORHjxY3g1XM7A1bkdwo' // 【本部】CHARGEサンロード吉祥寺
+  },
+  {
+    id: 'K2',
+    name: '北千住',
+    ssId: '' // ← 北千住の売上スプシIDを入れる
+  }
+];
 const ADMIN_KEY_STORAGE = 'chargeAdminKey';
-/** 自動再読込間隔（ミリ秒）。スプシを直したらこの時間以内に画面へ反映 */
+const STORE_STORAGE = 'chargeSalesStoreId';
+/** 自動再読込間隔（ミリ秒） */
 const AUTO_REFRESH_MS = 2 * 60 * 1000;
 
 /** 日次のメイン表示（この順）。それ以外は「詳細」に回す */
@@ -174,12 +204,40 @@ const SHORT_LABEL = {
 };
 
 let cur = { y: 0, m: 0 };
+let storeId = STORES[0].id;
 let headers = [];
 let rows = [];
 let loading = false;
 let refreshTimer = null;
 let lastOkAt = null;
 let showDetail = false;
+
+function store(){
+  return STORES.find(function(s){ return s.id === storeId; }) || STORES[0];
+}
+function storeLabel(){ return store().name; }
+function renderStoreTabs(){
+  const el = document.getElementById('storeTabs');
+  if (!el) return;
+  el.innerHTML = STORES.map(function(s){
+    const on = s.id === storeId ? ' on' : '';
+    const miss = !s.ssId ? ' · 未接続' : '';
+    return '<button type="button" class="' + on.trim() + '" onclick="selectStore(\'' + s.id + '\')">' +
+      esc(s.name) + (miss ? '<span style="font-weight:600;opacity:.75">' + miss + '</span>' : '') +
+      '</button>';
+  }).join('');
+}
+function selectStore(id){
+  if (storeId === id) return;
+  storeId = id;
+  try { localStorage.setItem(STORE_STORAGE, id); } catch (e) {}
+  showDetail = false;
+  headers = [];
+  rows = [];
+  document.getElementById('summary').innerHTML = '';
+  renderStoreTabs();
+  load(false);
+}
 
 function esc(s){
   return String(s).replace(/[&<>"']/g, function(c){
@@ -332,7 +390,8 @@ function setUpdated(ok, extra){
   if (ok) {
     lastOkAt = new Date();
     dot.classList.remove('off');
-    text.textContent = '最終更新 ' + fmtTime(lastOkAt) + ' · 約' + (AUTO_REFRESH_MS / 60000) + '分ごとに自動取得' + (extra || '');
+    text.textContent = storeLabel() + ' · 最終更新 ' + fmtTime(lastOkAt) +
+      ' · 約' + (AUTO_REFRESH_MS / 60000) + '分ごと' + (extra || '');
   } else {
     dot.classList.add('off');
     text.textContent = extra || '更新に失敗しました';
@@ -352,19 +411,33 @@ function boot(){
     location.href = 'top.html';
     return;
   }
+  const saved = localStorage.getItem(STORE_STORAGE);
+  if (saved && STORES.some(function(s){ return s.id === saved; })) storeId = saved;
   const now = new Date();
   cur.y = now.getFullYear();
   cur.m = now.getMonth() + 1;
+  renderStoreTabs();
   setMsg('Googleスプレッドシート接続中…');
   google.charts.load('current', { packages: ['corechart'] });
   google.charts.setOnLoadCallback(function(){
     load(false);
     scheduleAutoRefresh();
   });
-  // タブを戻したときも最新化
   document.addEventListener('visibilitychange', function(){
     if (!document.hidden) load(true);
   });
+}
+
+function showStoreSetup(st){
+  document.getElementById('summary').innerHTML = '';
+  document.getElementById('content').innerHTML =
+    '<div class="card"><div class="setup-box">' +
+    '<p><b>' + esc(st.name) + '</b> の売上スプシがまだ未接続です。</p>' +
+    '<p>① 北千住用スプシを開き、右上「共有」→ <b>リンクを知っている全員 / 閲覧者</b></p>' +
+    '<p>② URLをこのチャットに送ってください（例: https://docs.google.com/spreadsheets/d/<code>xxxx</code>/edit ）</p>' +
+    '<p>③ 接続後、このタブで吉祥寺と同じ形式（タブ名 <code>2026.7月</code> など）の表が表示されます。</p>' +
+    '</div></div>';
+  setUpdated(false, esc(st.name) + ' · スプシ未接続');
 }
 
 /**
@@ -372,13 +445,19 @@ function boot(){
  */
 function load(silent){
   if (loading) return;
-  loading = true;
+  const st = store();
   document.getElementById('monLabel').textContent = cur.y + '年' + cur.m + '月';
+  if (!st.ssId) {
+    loading = false;
+    showStoreSetup(st);
+    return;
+  }
+  loading = true;
   const name = sheetName(cur.y, cur.m);
-  if (!silent) setMsg('読み込み中…（' + esc(name) + '）');
+  if (!silent) setMsg('読み込み中…（' + esc(st.name) + ' · ' + esc(name) + '）');
   else setUpdated(!!lastOkAt, lastOkAt ? ' · 更新中…' : '');
 
-  const url = 'https://docs.google.com/spreadsheets/d/' + SALES_SS_ID +
+  const url = 'https://docs.google.com/spreadsheets/d/' + st.ssId +
     '/gviz/tq?sheet=' + encodeURIComponent(name) + '&_=' + Date.now();
   const query = new google.visualization.Query(url);
   query.send(function(res){
@@ -386,7 +465,7 @@ function load(silent){
     if (res.isError()) {
       if (!silent) {
         setMsg(
-          '読み込みエラー: ' + esc(res.getMessage()) +
+          '読み込みエラー（' + esc(st.name) + '）: ' + esc(res.getMessage()) +
           '<br><br>タブ「' + esc(name) + '」があるか、' +
           'スプシ共有が「リンクを知っている全員が閲覧可」になっているか確認してください。',
           true
@@ -521,7 +600,7 @@ function render(sheetNm){
   const repeatKey = findHeader(['リピート客数', 'リピーター', 'リピ客数']);
 
   html += '<div class="card">';
-  html += '<h2>週一覧 <span class="sub">月1日始まり · ' + esc(STORE_LABEL) + '</span></h2>';
+  html += '<h2>週一覧 <span class="sub">月1日始まり · ' + esc(storeLabel()) + '</span></h2>';
   html += '<div class="table-wrap"><table class="wtable"><thead><tr>';
   html += '<th>期間</th><th class="r">施術</th><th class="r">新規</th><th class="r">リピ</th>';
   if (moneyKey) html += '<th class="r">総売上</th>';
