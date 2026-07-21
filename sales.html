@@ -53,6 +53,13 @@ table.sales tfoot td{font-weight:800;border-top:1px solid var(--line);border-bot
 .wtable th.r,.wtable td.r{text-align:right}
 .foot{text-align:center;font-size:10px;color:#9AA3AF;margin-top:10px}
 .badge{display:inline-block;font-size:10px;font-weight:700;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:var(--muted)}
+.updated{font-size:11px;color:var(--muted);margin:8px 0 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.updated .dot{width:7px;height:7px;border-radius:50%;background:#3BBE7A;flex-shrink:0}
+.updated .dot.off{background:#9AA3AF}
+.updated button{
+  border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:3px 10px;
+  font-size:11px;cursor:pointer;font-family:inherit;color:var(--ink)
+}
 </style>
 </head>
 <body>
@@ -62,7 +69,7 @@ table.sales tfoot td{font-weight:800;border-top:1px solid var(--line);border-bot
       <a href="top.html">← 管理TOP</a>
       <a href="admin.html?v=1.5">シフト管理</a>
       <a href="cost.html?v=1.1">週次人件費</a>
-      <a href="sales.html?v=2.0" class="on">売上表</a>
+      <a href="sales.html?v=2.1" class="on">売上表</a>
     </div>
     <div class="links">
       <button type="button" class="navbtn" onclick="logout()">ログアウト</button>
@@ -70,7 +77,7 @@ table.sales tfoot td{font-weight:800;border-top:1px solid var(--line);border-bot
   </div>
   <div class="card">
     <div class="head">
-      <h1>売上表 <span class="badge">GAS貼り付け不要</span></h1>
+      <h1>売上表 <span class="badge">自動更新</span></h1>
       <div class="mnav">
         <button type="button" onclick="moveMonth(-1)">◀</button>
         <span class="mon" id="monLabel"></span>
@@ -78,21 +85,31 @@ table.sales tfoot td{font-weight:800;border-top:1px solid var(--line);border-bot
       </div>
     </div>
     <div class="sum-cards" id="summary"></div>
+    <p class="updated" id="updatedLine">
+      <span class="dot off" id="liveDot"></span>
+      <span id="updatedText">未取得</span>
+      <button type="button" onclick="load(false)">今すぐ更新</button>
+    </p>
   </div>
   <div id="content"><p class="msg">準備中…</p></div>
-  <div class="foot">sales v2.0</div>
+  <div class="foot">sales v2.1 · スプシ変更は約2分で反映</div>
 </div>
 <script>
 // ===== 設定（ここだけ変えればOK） =====
 const SALES_SS_ID = '1tkaQzpRwSehJwl4tfZVqARGxORHjxY3g1XM7A1bkdwo';
 const STORE_LABEL = 'K1';
 const ADMIN_KEY_STORAGE = 'chargeAdminKey';
+/** 自動再読込間隔（ミリ秒）。スプシを直したらこの時間以内に画面へ反映 */
+const AUTO_REFRESH_MS = 2 * 60 * 1000;
 
 const SUM_HINTS = ['施術人数','施+回','リピート客数','リ+回','現金','キャッシュレス','総売上','税抜','回数券購入','回数券利用人数','回数券利用枚数'];
 
 let cur = { y: 0, m: 0 };
 let headers = [];
 let rows = [];
+let loading = false;
+let refreshTimer = null;
+let lastOkAt = null;
 
 function esc(s){
   return String(s).replace(/[&<>"']/g, function(c){
@@ -140,7 +157,34 @@ function moveMonth(dir){
   cur.m += dir;
   if (cur.m < 1) { cur.m = 12; cur.y--; }
   if (cur.m > 12) { cur.m = 1; cur.y++; }
-  load();
+  load(false);
+}
+
+function pad2(n){ return String(n).padStart(2, '0'); }
+function fmtTime(d){
+  return d.getFullYear() + '/' + pad2(d.getMonth() + 1) + '/' + pad2(d.getDate()) +
+    ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds());
+}
+function setUpdated(ok, extra){
+  const dot = document.getElementById('liveDot');
+  const text = document.getElementById('updatedText');
+  if (!dot || !text) return;
+  if (ok) {
+    lastOkAt = new Date();
+    dot.classList.remove('off');
+    text.textContent = '最終更新 ' + fmtTime(lastOkAt) + ' · 約' + (AUTO_REFRESH_MS / 60000) + '分ごとに自動取得' + (extra || '');
+  } else {
+    dot.classList.add('off');
+    text.textContent = extra || '更新に失敗しました';
+  }
+}
+
+function scheduleAutoRefresh(){
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(function(){
+    if (document.hidden) return; // 裏タブはスキップ
+    load(true);
+  }, AUTO_REFRESH_MS);
 }
 
 function boot(){
@@ -153,26 +197,43 @@ function boot(){
   cur.m = now.getMonth() + 1;
   setMsg('Googleスプレッドシート接続中…');
   google.charts.load('current', { packages: ['corechart'] });
-  google.charts.setOnLoadCallback(load);
+  google.charts.setOnLoadCallback(function(){
+    load(false);
+    scheduleAutoRefresh();
+  });
+  // タブを戻したときも最新化
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden) load(true);
+  });
 }
 
-function load(){
+/**
+ * @param {boolean} silent true=表示を消さず裏で再取得（自動更新用）
+ */
+function load(silent){
+  if (loading) return;
+  loading = true;
   document.getElementById('monLabel').textContent = cur.y + '年' + cur.m + '月';
   const name = sheetName(cur.y, cur.m);
-  setMsg('読み込み中…（' + esc(name) + '）');
+  if (!silent) setMsg('読み込み中…（' + esc(name) + '）');
+  else setUpdated(!!lastOkAt, lastOkAt ? ' · 更新中…' : '');
 
   const url = 'https://docs.google.com/spreadsheets/d/' + SALES_SS_ID +
-    '/gviz/tq?sheet=' + encodeURIComponent(name);
+    '/gviz/tq?sheet=' + encodeURIComponent(name) + '&_=' + Date.now();
   const query = new google.visualization.Query(url);
   query.send(function(res){
+    loading = false;
     if (res.isError()) {
-      setMsg(
-        '読み込みエラー: ' + esc(res.getMessage()) +
-        '<br><br>タブ「' + esc(name) + '」があるか、' +
-        'スプシ共有が「リンクを知っている全員が閲覧可」になっているか確認してください。',
-        true
-      );
-      document.getElementById('summary').innerHTML = '';
+      if (!silent) {
+        setMsg(
+          '読み込みエラー: ' + esc(res.getMessage()) +
+          '<br><br>タブ「' + esc(name) + '」があるか、' +
+          'スプシ共有が「リンクを知っている全員が閲覧可」になっているか確認してください。',
+          true
+        );
+        document.getElementById('summary').innerHTML = '';
+      }
+      setUpdated(false, '読み込みエラー（次の自動更新で再試行）');
       return;
     }
     const dt = res.getDataTable();
@@ -202,10 +263,8 @@ function load(){
         if (!headers[c]) continue;
         let v = dt.getValue(r, c);
         if (v instanceof Date) v = (v.getMonth() + 1) + '/' + v.getDate(); // 表示用は簡易
-        // 数値フォーマットされた文字列が欲しい場合は getFormattedValue
         const fv = dt.getFormattedValue(r, c);
         if (c !== dateIdx && fv !== '' && fv != null) any = true;
-        // 数値列は raw 数値優先
         if (typeof v === 'number') values[headers[c]] = v;
         else values[headers[c]] = fv;
       }
@@ -216,6 +275,7 @@ function load(){
     }
     rows.sort(function(a, b){ return a.day - b.day; });
     render(name);
+    setUpdated(true);
   });
 }
 
@@ -243,7 +303,7 @@ function render(sheetNm){
   const showHeaders = ['日付'].concat(headers.filter(function(h){ return h && h !== '日付'; }));
   let html = '<div class="card">';
   html += '<h2>日次明細 · ' + esc(sheetNm) + ' · ' + esc(STORE_LABEL) + '</h2>';
-  html += '<p class="hint">GASへの貼り付け不要です。編集は元のスプレッドシートで。週は月1日始まり（1–7が第1週）。</p>';
+  html += '<p class="hint">元スプシを直すと自動で反映されます（約2分間隔・タブ復帰時・「今すぐ更新」）。週は月1日始まり（1–7が第1週）。</p>';
 
   if (!rows.length) {
     html += '<p class="msg">この月のデータがありません。</p></div>';
