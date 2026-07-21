@@ -140,7 +140,7 @@ table.wtable td.range{font-weight:700}
       <a href="top.html">← 管理TOP</a>
       <a href="admin.html?v=1.5">シフト管理</a>
       <a href="cost.html?v=1.1">週次人件費</a>
-      <a href="sales.html?v=2.6" class="on">売上表</a>
+      <a href="sales.html?v=2.7" class="on">売上表</a>
     </div>
     <div class="links">
       <button type="button" class="navbtn" onclick="logout()">ログアウト</button>
@@ -164,22 +164,25 @@ table.wtable td.range{font-weight:700}
     </p>
   </div>
   <div id="content"><p class="msg">準備中…</p></div>
-  <div class="foot">sales v2.6 · 店舗切替対応</div>
+  <div class="foot">sales v2.7 · 吉祥寺 / 北千住</div>
 </div>
 <script>
 // ===== 設定（店舗ごとにスプシIDを入れる） =====
 // ssId: スプシURLの /d/XXXX/ の XXXX。空だと「未接続」表示。
+// sheetPrefs: タブ名の優先順（{y}{m} を置換）。見つからなければ他候補も試す。
 // 共有: リンクを知っている全員が閲覧可
 const STORES = [
   {
     id: 'K1',
     name: '吉祥寺',
-    ssId: '1tkaQzpRwSehJwl4tfZVqARGxORHjxY3g1XM7A1bkdwo' // 【本部】CHARGEサンロード吉祥寺
+    ssId: '1tkaQzpRwSehJwl4tfZVqARGxORHjxY3g1XM7A1bkdwo', // 【本部】CHARGEサンロード吉祥寺
+    sheetPrefs: ['{y}.{m}月', '{y}.{m}', '{y}年{m}月', '{m}月']
   },
   {
     id: 'K2',
     name: '北千住',
-    ssId: '' // ← 北千住の売上スプシIDを入れる
+    ssId: '1P2gIUXQMthbjIlK_Wcq5yrYJOPe2RtrrwTUbiiwO0t8', // 【本部】CHARGEエキア北千住
+    sheetPrefs: ['{y}.{m}', '{y}.{m}月', '{y}年{m}月', '{m}月']
   }
 ];
 const ADMIN_KEY_STORAGE = 'chargeAdminKey';
@@ -252,10 +255,31 @@ function setMsg(t, isErr){
 function toNum(v){
   if (v === '' || v === null || v === undefined) return null;
   if (typeof v === 'number') return isNaN(v) ? null : v;
-  const n = Number(String(v).replace(/,/g, '').replace(/[¥円]/g, '').trim());
+  const s = String(v).replace(/,/g, '').replace(/[¥円]/g, '').trim();
+  if (!s || s.charAt(0) === '#') return null; // #DIV/0! など
+  const n = Number(s);
   return isNaN(n) ? null : n;
 }
-function sheetName(y, m){ return y + '.' + m + '月'; }
+function sheetNameCandidates(y, m){
+  const st = store();
+  const prefs = (st && st.sheetPrefs) || ['{y}.{m}月', '{y}.{m}', '{y}年{m}月', '{m}月'];
+  const seen = {};
+  const out = [];
+  prefs.forEach(function(p){
+    const n = p.replace(/\{y\}/g, String(y)).replace(/\{m\}/g, String(m));
+    if (!seen[n]) { seen[n] = 1; out.push(n); }
+  });
+  return out;
+}
+/** 日次売上表らしいか（誤タブを弾く） */
+function looksLikeDailySales(dt){
+  if (!dt || dt.getNumberOfColumns() < 3) return false;
+  let labels = '';
+  for (let c = 0; c < dt.getNumberOfColumns(); c++) {
+    labels += '|' + String(dt.getColumnLabel(c) || '');
+  }
+  return /総売上|施術人数|キャッシュレス|リピート/.test(labels);
+}
 function isSumCol(name){
   if (!name) return false;
   if (name.indexOf('単価') >= 0) return false;
@@ -453,29 +477,44 @@ function load(silent){
     return;
   }
   loading = true;
-  const name = sheetName(cur.y, cur.m);
-  if (!silent) setMsg('読み込み中…（' + esc(st.name) + ' · ' + esc(name) + '）');
+  const candidates = sheetNameCandidates(cur.y, cur.m);
+  if (!silent) setMsg('読み込み中…（' + esc(st.name) + '）');
   else setUpdated(!!lastOkAt, lastOkAt ? ' · 更新中…' : '');
+  tryLoadSheet(st, candidates, 0, silent, []);
+}
 
+function tryLoadSheet(st, candidates, idx, silent, tried){
+  if (idx >= candidates.length) {
+    loading = false;
+    if (!silent) {
+      setMsg(
+        '読み込みエラー（' + esc(st.name) + '）: 月次タブが見つかりません。<br>' +
+        '試した名前: ' + esc(tried.join(' / ')) +
+        '<br><br>タブ名が「2026.7月」または「2026.7」形式か、' +
+        '共有が「リンクを知っている全員が閲覧可」か確認してください。',
+        true
+      );
+      document.getElementById('summary').innerHTML = '';
+    }
+    setUpdated(false, '読み込みエラー（次の自動更新で再試行）');
+    return;
+  }
+  const name = candidates[idx];
+  tried.push(name);
   const url = 'https://docs.google.com/spreadsheets/d/' + st.ssId +
-    '/gviz/tq?sheet=' + encodeURIComponent(name) + '&_=' + Date.now();
+    '/gviz/tq?sheet=' + encodeURIComponent(name) + '&_=' + Date.now() + idx;
   const query = new google.visualization.Query(url);
   query.send(function(res){
-    loading = false;
-    if (res.isError()) {
-      if (!silent) {
-        setMsg(
-          '読み込みエラー（' + esc(st.name) + '）: ' + esc(res.getMessage()) +
-          '<br><br>タブ「' + esc(name) + '」があるか、' +
-          'スプシ共有が「リンクを知っている全員が閲覧可」になっているか確認してください。',
-          true
-        );
-        document.getElementById('summary').innerHTML = '';
-      }
-      setUpdated(false, '読み込みエラー（次の自動更新で再試行）');
+    if (res.isError() || !looksLikeDailySales(res.getDataTable())) {
+      tryLoadSheet(st, candidates, idx + 1, silent, tried);
       return;
     }
-    const dt = res.getDataTable();
+    loading = false;
+    parseDailyTable(res.getDataTable(), name);
+  });
+}
+
+function parseDailyTable(dt, name){
     // ヘッダ（空列は捨てる）
     headers = [];
     const colMap = []; // dataTable列 index
@@ -485,11 +524,15 @@ function load(silent){
       headers.push(lab);
       colMap.push(c);
     }
-    // 日付列: 「7月」など
+    // 日付列: 「7月」など / 先頭が日の表（北千住は長文ヘッダ）
     let dateIdx = 0;
     for (let i = 0; i < headers.length; i++) {
-      if (/^\d{1,2}月$/.test(headers[i]) || headers[i] === '日付') { dateIdx = i; break; }
+      if (/^\d{1,2}月$/.test(headers[i]) || headers[i] === '日付' || /\d{1,2}月$/.test(headers[i])) {
+        dateIdx = i; break;
+      }
     }
+    // 先頭列が曜日なら日付はさらに左…ここでは通常0列目
+    if (headers[0] === '曜日' && headers.length > 1) dateIdx = 0;
     const dateCol = colMap[dateIdx];
     const mPrefix = cur.y + '-' + String(cur.m).padStart(2, '0');
     // シート下部に別表（日がもう一度並ぶ）があるため:
@@ -509,6 +552,8 @@ function load(silent){
       } else {
         const s = String(dayRaw).trim();
         if (!s) dayNum = null;
+        // 「2月1日」形式はスキップ（別フォーマットの誤タブ）
+        else if (/月/.test(s) && /日/.test(s)) dayNum = null;
         else dayNum = parseInt(s.replace(/[^\d]/g, ''), 10);
       }
       if (!dayNum || dayNum < 1 || dayNum > 31 || dayNum !== Math.floor(dayNum)) {
@@ -524,18 +569,21 @@ function load(silent){
       for (let i = 0; i < headers.length; i++) {
         const c = colMap[i];
         const h = headers[i];
+        // 日付列ヘッダが長文のときは「日付」キーに寄せない（表示は dayLabel）
+        const key = (i === dateIdx) ? ('__day__') : h;
         let v = dt.getValue(r, c);
         if (v instanceof Date) v = (v.getMonth() + 1) + '/' + v.getDate();
-        const fv = dt.getFormattedValue(r, c);
+        let fv = dt.getFormattedValue(r, c);
+        if (fv && String(fv).charAt(0) === '#') fv = ''; // #DIV/0!
         if (i !== dateIdx && fv !== '' && fv != null) any = true;
-        // 単価は数値を丸めて保持（小数なし）
+        if (i === dateIdx) continue;
         if (typeof v === 'number') {
-          values[h] = isUnitCol(h) ? Math.round(v) : v;
-        } else if (isUnitCol(h)) {
+          values[key] = isUnitCol(key) ? Math.round(v) : v;
+        } else if (isUnitCol(key)) {
           const n = toNum(fv);
-          values[h] = n === null ? fv : Math.round(n);
+          values[key] = n === null ? '' : Math.round(n);
         } else {
-          values[h] = fv;
+          values[key] = fv;
         }
       }
       if (!any) continue;
@@ -545,9 +593,10 @@ function load(silent){
     }
     rows = Object.keys(byDay).map(function(k){ return byDay[k]; })
       .sort(function(a, b){ return a.day - b.day; });
+    // 表示用ヘッダから日付の長文列を除く
+    headers = headers.filter(function(h, i){ return i !== dateIdx; });
     render(name);
     setUpdated(true);
-  });
 }
 
 function sumField(key){
