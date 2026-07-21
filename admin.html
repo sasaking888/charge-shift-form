@@ -204,6 +204,23 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
 }
 .topnav a.on,.topnav .navbtn.on{background:var(--ink);border-color:var(--ink);color:#fff}
 .topnav .crumb{font-size:12px;color:var(--muted);font-weight:600}
+
+/* staff form */
+.staffform{display:flex;flex-direction:column;gap:10px;max-width:480px;margin-top:4px}
+.staffform label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;font-weight:700;color:var(--ink)}
+.staffform label.chk{flex-direction:row;align-items:center;gap:8px;font-weight:600}
+.staffform input[type=text],.staffform input[type=number],.staffform select{
+  border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;
+  background:var(--surface);color:var(--ink)}
+.daychecks{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px}
+.daychecks .lbl{font-weight:700;margin-right:4px}
+.dchk{display:flex;align-items:center;gap:3px;font-weight:600}
+.trow{display:flex;align-items:center;gap:6px}
+.staffform-actions{display:flex;gap:8px;margin-top:4px}
+.badge-on{background:color-mix(in srgb, var(--lgreen) 18%, var(--surface));color:#0B7A3B;border:1px solid var(--lgreen);
+  border-radius:999px;padding:2px 8px;font-size:11px;font-weight:700}
+.badge-off{background:var(--bg);color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:2px 8px;
+  font-size:11px;font-weight:700}
 </style>
 </head>
 <body>
@@ -236,7 +253,7 @@ code.uid{display:block;background:var(--bg);border:1px solid var(--line);border-
     <div class="tools" id="tools"></div>
   </div>
   <div id="content"><p class="msg">読み込み中…</p></div>
-  <div class="foot">shift-admin v1.5</div>
+  <div class="foot">shift-admin v1.6</div>
 </div>
 <script>
 const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxeXoT_E22dAyb_rz7hH0Q0_JeJqqhNJyV-VfGtvDpVjVZlEtUH4wxKUY8i64H66VFT/exec';
@@ -255,6 +272,17 @@ let inboxOpen = null; // null = auto
 let drag = null;
 /** 未保存の変更: shiftId -> { start, end, staffId }（ドラッグは即APIせずここに溜める） */
 let pending = {};
+
+const EMPLOYMENT_TYPES = ['アルバイト','パート','社員','業務委託','その他'];
+const WEEKDAY_LABELS = ['月','火','水','木','金','土','日'];
+let staffEditing = null; // null | 'new' | staffId
+
+function normalizeDays(v){
+  if(Array.isArray(v)) return v.map(Number).filter(n => n >= 0 && n <= 6);
+  if(typeof v === 'string' && v) return v.split(',').map(Number).filter(n => !isNaN(n));
+  return [];
+}
+function truthy(v){ return v === true || v === 'TRUE' || v === 'true' || v === 1 || v === '1'; }
 
 function api(payload){
   payload.adminKey = localStorage.getItem(ADMIN_KEY_STORAGE) || '';
@@ -519,20 +547,30 @@ function render(){
   document.getElementById('modes').innerHTML =
     '<button type="button" class="' + (viewMode === 'month' ? 'on' : '') + '" onclick="setView(\'month\')">月</button>' +
     '<button type="button" class="' + (viewMode === 'week' ? 'on' : '') + '" onclick="setView(\'week\')">週</button>' +
-    '<button type="button" class="' + (viewMode === 'day' ? 'on' : '') + '" onclick="setView(\'day\')">日</button>';
+    '<button type="button" class="' + (viewMode === 'day' ? 'on' : '') + '" onclick="setView(\'day\')">日</button>' +
+    '<button type="button" class="' + (viewMode === 'staff' ? 'on' : '') + '" onclick="setView(\'staff\')">スタッフ</button>';
 
   const tools = document.getElementById('tools');
-  let toolsHtml = '<a class="toolbtn" style="text-decoration:none;display:inline-block" href="cost.html">週次人件費を見る →</a>';
-  if(st && st.editable){
-    toolsHtml += '<button type="button" class="toolbtn primary" onclick="doCopyPrevMonth()">前月コピー</button>' +
-      '<span class="hint" style="margin:0">前月の確定をこの月へ（同日同人はスキップ）</span>';
+  if(viewMode === 'staff'){
+    tools.innerHTML = '';
+  } else {
+    let toolsHtml = '<a class="toolbtn" style="text-decoration:none;display:inline-block" href="cost.html">週次人件費を見る →</a>';
+    if(st && st.editable){
+      toolsHtml += '<button type="button" class="toolbtn primary" onclick="doCopyPrevMonth()">前月コピー</button>' +
+        '<span class="hint" style="margin:0">前月の確定をこの月へ（同日同人はスキップ）</span>';
+    }
+    tools.innerHTML = toolsHtml;
   }
-  tools.innerHTML = toolsHtml;
 
-  let html = renderInbox();
-  if(viewMode === 'month') html += renderCal();
-  else if(viewMode === 'week') html += renderWeekView();
-  else html += renderDay();
+  let html;
+  if(viewMode === 'staff'){
+    html = renderStaffPage();
+  } else {
+    html = renderInbox();
+    if(viewMode === 'month') html += renderCal();
+    else if(viewMode === 'week') html += renderWeekView();
+    else html += renderDay();
+  }
   document.getElementById('content').innerHTML = html;
   if(viewMode === 'day' && selDate) bindGantt();
 }
@@ -542,6 +580,7 @@ function setView(mode){
   const pol = leaveDirtyPolicy();
   if(pol === 'cancel') return;
   viewMode = mode;
+  staffEditing = null;
   if(mode === 'day' && !selDate){
     const t = todayStr();
     const prefix = cur.y + '-' + String(cur.m).padStart(2,'0');
@@ -567,7 +606,7 @@ function switchStore(id){
   if(id === storeId) return;
   const pol = leaveDirtyPolicy();
   if(pol === 'cancel') return;
-  storeId = id; selDate = null; selShiftId = null; weekIdx = 0;
+  storeId = id; selDate = null; selShiftId = null; weekIdx = 0; staffEditing = null;
   if(pol === 'reload') load();
   else render();
 }
@@ -930,6 +969,123 @@ function timeOpts(open, close, sel){
   for(let t = open; t <= close + 1e-9; t = Math.round((t + 0.5) * 2) / 2)
     s += '<option value="' + t + '"' + (t === sel ? ' selected' : '') + '>' + hLabel(t) + '</option>';
   return s;
+}
+
+function renderStaffPage(){
+  let html = renderStaffList();
+  if(staffEditing !== null) html += renderStaffForm();
+  return html;
+}
+
+function renderStaffList(){
+  const st = store();
+  const list = storeStaff();
+  let html = '<div class="card"><h2>スタッフ一覧（' + esc(st.name) + '）</h2>';
+  html += '<p class="hint">氏名・雇用形態・時給・希望シフト収集の設定はここから登録・編集できます（スプレッドシート直接編集は不要）。</p>';
+  html += '<table class="wtable"><thead><tr><th>氏名</th><th>雇用形態</th><th class="r">時給</th><th>希望収集</th><th>希望する曜日・時間帯</th>' +
+    (st.editable ? '<th></th>' : '') + '</tr></thead><tbody>';
+  if(!list.length){
+    html += '<tr><td colspan="' + (st.editable ? 6 : 5) + '" style="text-align:center;color:var(--muted);padding:16px">スタッフがいません</td></tr>';
+  }
+  list.forEach(function(sf){
+    const days = normalizeDays(sf.preferredDays);
+    const daysLabel = days.length ? days.map(d => WEEKDAY_LABELS[d]).join('') : '';
+    const timeLabel = (sf.preferredStart != null && sf.preferredEnd != null && sf.preferredStart !== '' && sf.preferredEnd !== '')
+      ? hLabel(Number(sf.preferredStart)) + '〜' + hLabel(Number(sf.preferredEnd)) : '';
+    html += '<tr><td>' + esc(sf.name) + '</td><td>' + esc(sf.employmentType || '—') + '</td><td class="r">' + yen(Number(sf.wage) || 0) + '</td>' +
+      '<td>' + (truthy(sf.requestCollection) ? '<span class="badge-on">収集中</span>' : '<span class="badge-off">対象外</span>') + '</td>' +
+      '<td>' + (days.length ? esc(daysLabel) + (timeLabel ? ' ' + esc(timeLabel) : '') : '未設定') + '</td>' +
+      (st.editable ? '<td><button type="button" class="toolbtn" onclick="openStaffForm(\'' + esc(sf.id) + '\')">編集</button></td>' : '') +
+      '</tr>';
+  });
+  html += '</tbody></table>';
+  if(st.editable && staffEditing === null){
+    html += '<div style="margin-top:10px"><button type="button" class="toolbtn primary" onclick="openStaffForm(null)">＋ スタッフを追加</button></div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function renderStaffForm(){
+  const st = store();
+  const editing = (staffEditing !== 'new') ? D.staff.find(s => s.id === staffEditing) : null;
+  const days = editing ? normalizeDays(editing.preferredDays) : [];
+  const pStart = editing && editing.preferredStart !== null && editing.preferredStart !== '' && editing.preferredStart !== undefined
+    ? Number(editing.preferredStart) : st.open;
+  const pEnd = editing && editing.preferredEnd !== null && editing.preferredEnd !== '' && editing.preferredEnd !== undefined
+    ? Number(editing.preferredEnd) : st.close;
+  const curType = editing ? editing.employmentType : 'アルバイト';
+  const reqChecked = editing ? truthy(editing.requestCollection) : true;
+
+  let html = '<div class="card">';
+  html += '<h2>' + (editing ? 'スタッフ編集: ' + esc(editing.name) : '新しいスタッフを追加') + '（' + esc(st.name) + '）</h2>';
+  html += '<div class="staffform">';
+  html += '<label>氏名<input type="text" id="stfName" value="' + (editing ? esc(editing.name) : '') + '"></label>';
+  html += '<label>雇用形態<select id="stfType">' +
+    EMPLOYMENT_TYPES.map(t => '<option value="' + esc(t) + '"' + (curType === t ? ' selected' : '') + '>' + esc(t) + '</option>').join('') +
+    '</select></label>';
+  html += '<label>時給（円）<input type="number" id="stfWage" min="0" step="10" value="' + (editing ? (Number(editing.wage) || 0) : '') + '"></label>';
+  html += '<label class="chk"><input type="checkbox" id="stfReq"' + (reqChecked ? ' checked' : '') +
+    '> 希望シフト収集の対象にする（LINEで希望を集める）</label>';
+  html += '<div class="daychecks"><span class="lbl">希望する曜日</span>';
+  WEEKDAY_LABELS.forEach(function(w, i){
+    html += '<label class="dchk"><input type="checkbox" id="stfDay' + i + '"' + (days.indexOf(i) >= 0 ? ' checked' : '') + '>' + w + '</label>';
+  });
+  html += '</div>';
+  html += '<label>希望する時間帯<span class="trow"><select id="stfStart">' + timeOpts(st.open, st.close - 0.5, pStart) +
+    '</select><span>〜</span><select id="stfEnd">' + timeOpts(st.open + 0.5, st.close, pEnd) + '</select></span></label>';
+  html += '<p class="hint" style="margin:0">曜日・時間帯は目安の希望です。未入力でも登録できます。</p>';
+  html += '<div class="staffform-actions">' +
+    '<button type="button" class="toolbtn" onclick="closeStaffForm()">キャンセル</button>' +
+    '<button type="button" class="toolbtn primary" onclick="submitStaffForm()">' + (editing ? '保存' : '追加') + '</button></div>';
+  html += '</div></div>';
+  return html;
+}
+
+function openStaffForm(id){
+  staffEditing = id || 'new';
+  render();
+}
+function closeStaffForm(){
+  staffEditing = null;
+  render();
+}
+function submitStaffForm(){
+  const st = store();
+  if(!st || !st.editable){ alert('この店舗は閲覧のみです'); return; }
+  const name = document.getElementById('stfName').value.trim();
+  if(!name){ alert('氏名を入力してください'); return; }
+  const employmentType = document.getElementById('stfType').value;
+  const wage = parseFloat(document.getElementById('stfWage').value);
+  if(isNaN(wage) || wage < 0){ alert('時給が正しくありません'); return; }
+  const requestCollection = document.getElementById('stfReq').checked;
+  const days = [];
+  WEEKDAY_LABELS.forEach(function(_, i){
+    const cb = document.getElementById('stfDay' + i);
+    if(cb && cb.checked) days.push(i);
+  });
+  const pStart = parseFloat(document.getElementById('stfStart').value);
+  const pEnd = parseFloat(document.getElementById('stfEnd').value);
+  if(isNaN(pStart) || isNaN(pEnd) || pEnd <= pStart){ alert('希望する時間帯が正しくありません'); return; }
+
+  const staffPayload = {
+    name: name,
+    storeId: storeId,
+    employmentType: employmentType,
+    wage: wage,
+    requestCollection: requestCollection,
+    preferredDays: days,
+    preferredStart: pStart,
+    preferredEnd: pEnd
+  };
+  const isNew = staffEditing === 'new';
+  setMsg(isNew ? '追加中…' : '保存中…');
+  const payload = isNew
+    ? { action: 'addStaff', userId: userId, staff: staffPayload }
+    : { action: 'updateStaff', userId: userId, staffId: staffEditing, staff: staffPayload };
+  api(payload)
+    .then(function(){ staffEditing = null; load(); })
+    .catch(function(e){ alert('エラー: ' + e.message); render(); });
 }
 
 let ganttWinBound = false;
